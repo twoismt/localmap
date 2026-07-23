@@ -74,10 +74,11 @@
     const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     return {
       version: 8,
+      glyphs: "glyphs/{fontstack}/{range}.pbf",
       sources: {},
       layers: [{
         id: "bg", type: "background",
-        paint: { "background-color": dark ? "#1b1c1f" : "#eef1f4" }
+        paint: { "background-color": dark ? "#191a1d" : "#e9ece9" }
       }]
     };
   }
@@ -90,6 +91,21 @@
         geometry: { type: "LineString", coordinates: l.stations.map(s => [s[1], s[2]]) }
       }))
     };
+  }
+  function stationsGeoJSON() {
+    const feats = [];
+    TRANSIT.lines.forEach(l => l.stations.forEach(s =>
+      feats.push({ type: "Feature", properties: { name: s[0], color: l.color },
+        geometry: { type: "Point", coordinates: [s[1], s[2]] } })));
+    return { type: "FeatureCollection", features: feats };
+  }
+  function centroidGeoJSON(polys) {
+    return { type: "FeatureCollection", features: polys.map(p => {
+      let x = 0, y = 0, n = p.coords.length - 1;
+      for (let i = 0; i < n; i++) { x += p.coords[i][0]; y += p.coords[i][1]; }
+      return { type: "Feature", properties: { name: p.name },
+        geometry: { type: "Point", coordinates: [x / n, y / n] } };
+    }) };
   }
   function placesGeoJSON() {
     return {
@@ -115,19 +131,38 @@
         geometry: { type: "Polygon", coordinates: [p.coords] } })) } });
     map.addLayer({ id: "parks", type: "fill", source: "parks",
       paint: { "fill-color": dark ? "#1e3324" : "#cdeccf", "fill-opacity": .8 } });
-    // roads
+    // canals
+    map.addSource("canals", { type: "geojson", data: {
+      type: "FeatureCollection", features: BASEMAP.canals.map(c => ({
+        type: "Feature", properties: { name: c.name },
+        geometry: { type: "LineString", coordinates: c.coords } })) } });
+    map.addLayer({ id: "canals", type: "line", source: "canals",
+      paint: { "line-color": dark ? "#274156" : "#bcdcf0",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1.5, 16, 6], "line-opacity": .85 } });
+    // roads (casing under, fill over) — width by class
     map.addSource("roads", { type: "geojson", data: {
       type: "FeatureCollection", features: BASEMAP.roads.map(r => ({
-        type: "Feature", properties: { name: r.name },
+        type: "Feature", properties: { name: r.name, class: r.class || "street" },
         geometry: { type: "LineString", coordinates: r.coords } })) } });
-    map.addLayer({ id: "roads", type: "line", source: "roads",
-      paint: { "line-color": dark ? "#3a3d42" : "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2, 15, 8] } });
+    const wByClass = (m = 1) => ["interpolate", ["linear"], ["zoom"],
+      11, ["match", ["get", "class"], "primary", 3 * m, "secondary", 2 * m, 1 * m],
+      14, ["match", ["get", "class"], "primary", 8 * m, "secondary", 5 * m, 2.5 * m],
+      17, ["match", ["get", "class"], "primary", 18 * m, "secondary", 12 * m, 6 * m]];
     map.addLayer({ id: "roads-case", type: "line", source: "roads",
-      paint: { "line-color": dark ? "#54585e" : "#dfe3e8", "line-width": ["interpolate", ["linear"], ["zoom"], 11, 3, 15, 10], "line-gap-width": 0 } }, "roads");
-    // rail
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": dark ? "#0f1012" : "#d7dbd7", "line-width": wByClass(1.35) } });
+    map.addLayer({ id: "roads", type: "line", source: "roads",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": dark ? "#3c4046" : "#ffffff", "line-width": wByClass(1) } });
+    // rail lines
     map.addSource("rail", { type: "geojson", data: railGeoJSON() });
     map.addLayer({ id: "rail", type: "line", source: "rail",
-      paint: { "line-color": ["get", "color"], "line-width": 3, "line-opacity": .85 } });
+      paint: { "line-color": ["get", "color"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2, 16, 4], "line-opacity": .9, "line-dasharray": [2, 1.2] } });
+    // rail stations
+    map.addSource("stations", { type: "geojson", data: stationsGeoJSON() });
+    map.addLayer({ id: "stations", type: "circle", source: "stations",
+      minzoom: 12.5,
+      paint: { "circle-radius": 3.2, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": ["get", "color"] } });
     // route (dynamic)
     map.addSource("route", { type: "geojson", data: empty() });
     map.addLayer({ id: "route", type: "line", source: "route",
@@ -140,6 +175,49 @@
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 14, 7, 16, 9],
         "circle-color": ["get", "color"], "circle-stroke-width": 2, "circle-stroke-color": "#fff"
       } });
+
+    // ---- LABELS ----
+    const halo = dark ? "#191a1d" : "#ffffff";
+    const inkC = dark ? "#e8eaed" : "#3c4043";
+    // river
+    map.addLayer({ id: "river-label", type: "symbol", source: "river",
+      layout: { "symbol-placement": "line", "text-field": "Чао Прайя", "text-font": ["DejaVu Sans"],
+        "text-size": 13, "text-letter-spacing": 0.1 },
+      paint: { "text-color": dark ? "#6ba3c9" : "#4a90c2", "text-halo-color": halo, "text-halo-width": 1.4 } });
+    // canals
+    map.addLayer({ id: "canal-label", type: "symbol", source: "canals", minzoom: 13,
+      layout: { "symbol-placement": "line", "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 10.5 },
+      paint: { "text-color": dark ? "#6ba3c9" : "#5b9bc7", "text-halo-color": halo, "text-halo-width": 1.2 } });
+    // roads
+    map.addLayer({ id: "road-label", type: "symbol", source: "roads", minzoom: 12.5,
+      layout: { "symbol-placement": "line", "text-field": ["get", "name"], "text-font": ["DejaVu Sans"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 12.5, 9, 16, ["match", ["get", "class"], "primary", 14, "secondary", 12, 11]],
+        "symbol-spacing": 260 },
+      paint: { "text-color": inkC, "text-halo-color": halo, "text-halo-width": 1.6 } });
+    // parks (centroid points)
+    map.addSource("parkLabels", { type: "geojson", data: centroidGeoJSON(BASEMAP.parks) });
+    map.addLayer({ id: "park-label", type: "symbol", source: "parkLabels", minzoom: 12.5,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 11, "text-max-width": 8 },
+      paint: { "text-color": dark ? "#7ba76f" : "#3f7a3a", "text-halo-color": halo, "text-halo-width": 1.2 } });
+    // districts
+    map.addSource("districts", { type: "geojson", data: {
+      type: "FeatureCollection", features: BASEMAP.districts.map(d => ({
+        type: "Feature", properties: { name: d.name }, geometry: { type: "Point", coordinates: [d.lon, d.lat] } })) } });
+    map.addLayer({ id: "district-label", type: "symbol", source: "districts", maxzoom: 15.5,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 10, 14, 13.5],
+        "text-letter-spacing": 0.05, "text-transform": "uppercase" },
+      paint: { "text-color": dark ? "#9aa0a6" : "#8a9099", "text-halo-color": halo, "text-halo-width": 1.6 } });
+    // stations
+    map.addLayer({ id: "station-label", type: "symbol", source: "stations", minzoom: 13.8,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 9.5,
+        "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
+      paint: { "text-color": ["get", "color"], "text-halo-color": halo, "text-halo-width": 1.3 } });
+    // place names
+    map.addLayer({ id: "place-label", type: "symbol", source: "places", minzoom: 13.5,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 11,
+        "text-offset": [0, 1.1], "text-anchor": "top", "text-max-width": 9, "text-optional": true },
+      paint: { "text-color": inkC, "text-halo-color": halo, "text-halo-width": 1.5 } });
     // highlight source
     map.addSource("hi", { type: "geojson", data: empty() });
     map.addLayer({ id: "hi", type: "circle", source: "hi",
@@ -160,7 +238,9 @@
   function refreshMapFilter() {
     if (!map || !map.getLayer("places")) return;
     const cats = store.filter.size ? [...store.filter] : null;
-    map.setFilter("places", cats ? ["in", ["get", "cat"], ["literal", cats]] : null);
+    const f = cats ? ["in", ["get", "cat"], ["literal", cats]] : null;
+    map.setFilter("places", f);
+    if (map.getLayer("place-label")) map.setFilter("place-label", f);
   }
   function highlight(p) {
     map.getSource("hi").setData({ type: "FeatureCollection",

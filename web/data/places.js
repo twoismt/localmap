@@ -2179,8 +2179,8 @@ null,
 "glutenfree": false,
 "reservation": false
 },
-"lon": 100.5658,
-"lat": 13.7576
+"lon": 100.569,
+"lat": 13.7648
 },
 {
 "id": 34,
