@@ -7158,7 +7158,8 @@ window.THEMES = [
       const min = walkMinutes(straight);
       options.push({
         mode: "walk", min, fare: 0, km: walkRoadKm(straight),
-        label: "Пешком", geometry: [a, b], legs: [{ t: "walk", min }]
+        label: "Пешком", geometry: [a, b], legs: [{ t: "walk", min }],
+        path: [{ road: "pedestrian", a, b }]
       });
     }
     // RAIL
@@ -7182,6 +7183,11 @@ window.THEMES = [
               { t: "walk", min: wA, to: sA.node.name },
               { t: "rail", min: rp.min + P.RAIL_WAIT_MIN, from: sA.node.name, to: sB.node.name, hops },
               { t: "walk", min: wB }
+            ],
+            path: [
+              { road: "pedestrian", a, b: sA.node.lonlat },
+              { line: rp.path.map(n => n.lonlat) },
+              { road: "pedestrian", a: sB.node.lonlat, b }
             ]
           });
         }
@@ -7204,7 +7210,12 @@ window.THEMES = [
           label: "Катер по реке",
           legs: [{ t: "walk", min: wA, to: TRANSIT.piers[pA.i][0] },
                  { t: "boat", min: hops * P.BOAT_PER_PIER_MIN + P.BOAT_WAIT_MIN },
-                 { t: "walk", min: wB }]
+                 { t: "walk", min: wB }],
+          path: [
+            { road: "pedestrian", a, b: [TRANSIT.piers[pA.i][1], TRANSIT.piers[pA.i][2]] },
+            { river: [[TRANSIT.piers[pA.i][1], TRANSIT.piers[pA.i][2]], [TRANSIT.piers[pB.i][1], TRANSIT.piers[pB.i][2]]] },
+            { road: "pedestrian", a: [TRANSIT.piers[pB.i][1], TRANSIT.piers[pB.i][2]], b }
+          ]
         });
       }
     }
@@ -7225,7 +7236,12 @@ window.THEMES = [
           label: "Лодка по каналу (Саенсэп)",
           legs: [{ t: "walk", min: wA, to: TRANSIT.canal.stops[cA.i][0] },
                  { t: "canal", min: hops * P.CANAL_PER_STOP_MIN + P.CANAL_WAIT_MIN },
-                 { t: "walk", min: wB }]
+                 { t: "walk", min: wB }],
+          path: [
+            { road: "pedestrian", a, b: [TRANSIT.canal.stops[cA.i][1], TRANSIT.canal.stops[cA.i][2]] },
+            { line: (cA.i < cB.i ? stopPts : stopPts.slice().reverse()) },
+            { road: "pedestrian", a: [TRANSIT.canal.stops[cB.i][1], TRANSIT.canal.stops[cB.i][2]], b }
+          ]
         });
       }
     }
@@ -7245,7 +7261,8 @@ window.THEMES = [
           options.push({
             mode: "ferry", min, fare: P.FERRY_FARE, geometry: [a, pA, pB, b],
             label: "Переправа через реку",
-            legs: [{ t: "walk", min: wA }, { t: "ferry", min: P.FERRY_CROSS_MIN + P.FERRY_WAIT_MIN }, { t: "walk", min: wB }]
+            legs: [{ t: "walk", min: wA }, { t: "ferry", min: P.FERRY_CROSS_MIN + P.FERRY_WAIT_MIN }, { t: "walk", min: wB }],
+            path: [{ road: "pedestrian", a, b: pA }, { straight: [pA, pB] }, { road: "pedestrian", a: pB, b }]
           });
         }
       }
@@ -7255,7 +7272,8 @@ window.THEMES = [
       const bk = bike(straight);
       options.push({
         mode: "bike", min: bk.min, fare: bk.fare, km: bk.km,
-        label: "Мотобайк / GrabBike", geometry: [a, b], legs: [{ t: "bike", min: bk.min }]
+        label: "Мотобайк / GrabBike", geometry: [a, b], legs: [{ t: "bike", min: bk.min }],
+        path: [{ road: "auto", a, b }]
       });
     }
     // TAXI / GRAB
@@ -7263,7 +7281,8 @@ window.THEMES = [
       const tx = taxi(straight);
       options.push({
         mode: "taxi", min: tx.min, fare: tx.fare, km: tx.km,
-        label: "Такси / Grab", geometry: [a, b], legs: [{ t: "taxi", min: tx.min }]
+        label: "Такси / Grab", geometry: [a, b], legs: [{ t: "taxi", min: tx.min }],
+        path: [{ road: "auto", a, b }]
       });
     }
 
@@ -7394,7 +7413,79 @@ window.THEMES = [
     };
   }
 
-  window.PLANNER = { route, planDay, buildRail, DWELL };
+  // ---- Street-following geometry (online road router + water tracing) ------
+  function decodePolyline(str, precision) {
+    let index = 0, lat = 0, lng = 0, coords = [];
+    const factor = Math.pow(10, precision || 6);
+    while (index < str.length) {
+      let shift = 0, result = 0, byte;
+      do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+      lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+      shift = 0; result = 0;
+      do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+      lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+      coords.push([lng / factor, lat / factor]);
+    }
+    return coords;
+  }
+
+  // Road-following polyline between two [lon,lat] points via the public FOSSGIS
+  // Valhalla router (runs on the connected device). Falls back to a straight
+  // segment on any failure (offline, CORS, timeout) so routing always works.
+  const _roadCache = new Map();
+  async function roadRoute(a, b, costing) {
+    const key = costing + a.map(n => n.toFixed(5)) + b.map(n => n.toFixed(5));
+    if (_roadCache.has(key)) return _roadCache.get(key);
+    let result = [a, b];
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch("https://valhalla1.openstreetmap.de/route", {
+        method: "POST", signal: ctrl.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locations: [{ lat: a[1], lon: a[0] }, { lat: b[1], lon: b[0] }],
+          costing: costing || "pedestrian", directions_type: "none"
+        })
+      });
+      clearTimeout(t);
+      if (res.ok) {
+        const j = await res.json();
+        const shape = j.trip && j.trip.legs && j.trip.legs[0] && j.trip.legs[0].shape;
+        if (shape) { const c = decodePolyline(shape, 6); if (c.length >= 2) result = c; }
+      }
+    } catch (e) { /* keep straight fallback */ }
+    _roadCache.set(key, result);
+    return result;
+  }
+
+  // Trace the river polyline between two piers so the water leg follows the
+  // Chao Phraya rather than a straight line.
+  function traceRiver(p0, p1) {
+    const c = BASEMAP.river.geometry.coordinates;
+    const nearestIdx = pt => { let bi = 0, bd = Infinity; c.forEach((q, i) => { const d = haversine(pt, q); if (d < bd) { bd = d; bi = i; } }); return bi; };
+    const i0 = nearestIdx(p0), i1 = nearestIdx(p1);
+    const lo = Math.min(i0, i1), hi = Math.max(i0, i1);
+    let mid = c.slice(lo, hi + 1);
+    if (i0 > i1) mid = mid.slice().reverse();
+    return [p0, ...mid, p1];
+  }
+
+  // Assemble detailed street/water-following geometry for a route option.
+  async function buildDetailed(option) {
+    if (!option || !option.path) return option ? option.geometry : null;
+    const out = [];
+    const push = pts => { for (const p of pts) { const l = out[out.length - 1]; if (!l || l[0] !== p[0] || l[1] !== p[1]) out.push(p); } };
+    for (const seg of option.path) {
+      if (seg.road) push(await roadRoute(seg.a, seg.b, seg.road));
+      else if (seg.river) push(traceRiver(seg.river[0], seg.river[1]));
+      else if (seg.line) push(seg.line);
+      else if (seg.straight) push(seg.straight);
+    }
+    return out.length >= 2 ? out : option.geometry;
+  }
+
+  window.PLANNER = { route, planDay, buildRail, DWELL, buildDetailed };
 })();
 </script>
 <script>
@@ -7866,7 +7957,17 @@ window.THEMES = [
       c.appendChild(step);
     });
     drawRoute(routeGeom);
+    drawPlanDetailed(res.steps);
     fitTo(res.steps.map(s => s.place));
+  }
+  async function drawPlanDetailed(steps) {
+    const parts = [];
+    for (const s of steps) {
+      if (!s.leg) continue;
+      try { const g = await window.PLANNER.buildDetailed(s.leg); if (g) parts.push(...g); }
+      catch (e) { parts.push(...(s.leg.geometry || [])); }
+    }
+    if (parts.length >= 2) drawRoute(parts);
   }
   function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "🚤", canal: "🛶", ferry: "⛴️", bike: "🏍️", taxi: "🚕" }[m] || "→"; }
 
@@ -7985,9 +8086,12 @@ window.THEMES = [
     card.querySelector(".close-x").onclick = () => openPlace(dest.id);
     card.querySelectorAll(".ropt").forEach(row => row.onclick = () => {
       const o = r.options.find(x => x.mode === row.dataset.mode);
-      drawRoute(o.geometry); closeOverlay(); fitTo([{ lon: from.lonlat[0], lat: from.lonlat[1] }, dest]);
+      drawRoute(o.geometry);
+      window.PLANNER.buildDetailed(o).then(g => { if (g) drawRoute(g); });
+      closeOverlay(); fitTo([{ lon: from.lonlat[0], lat: from.lonlat[1] }, dest]);
     });
     drawRoute(r.best.geometry);
+    window.PLANNER.buildDetailed(r.best).then(g => { if (g) drawRoute(g); });
     $("#overlay").classList.remove("hidden");
   }
 

@@ -454,7 +454,17 @@
       c.appendChild(step);
     });
     drawRoute(routeGeom);
+    drawPlanDetailed(res.steps);
     fitTo(res.steps.map(s => s.place));
+  }
+  async function drawPlanDetailed(steps) {
+    const parts = [];
+    for (const s of steps) {
+      if (!s.leg) continue;
+      try { const g = await window.PLANNER.buildDetailed(s.leg); if (g) parts.push(...g); }
+      catch (e) { parts.push(...(s.leg.geometry || [])); }
+    }
+    if (parts.length >= 2) drawRoute(parts);
   }
   function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "🚤", canal: "🛶", ferry: "⛴️", bike: "🏍️", taxi: "🚕" }[m] || "→"; }
 
@@ -573,9 +583,12 @@
     card.querySelector(".close-x").onclick = () => openPlace(dest.id);
     card.querySelectorAll(".ropt").forEach(row => row.onclick = () => {
       const o = r.options.find(x => x.mode === row.dataset.mode);
-      drawRoute(o.geometry); closeOverlay(); fitTo([{ lon: from.lonlat[0], lat: from.lonlat[1] }, dest]);
+      drawRoute(o.geometry);
+      window.PLANNER.buildDetailed(o).then(g => { if (g) drawRoute(g); });
+      closeOverlay(); fitTo([{ lon: from.lonlat[0], lat: from.lonlat[1] }, dest]);
     });
     drawRoute(r.best.geometry);
+    window.PLANNER.buildDetailed(r.best).then(g => { if (g) drawRoute(g); });
     $("#overlay").classList.remove("hidden");
   }
 
