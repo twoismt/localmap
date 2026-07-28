@@ -1,19 +1,23 @@
-// Curated full-day route themes. The planner turns a theme's places into a
-// timed, optimised itinerary for a chosen date (and auto-drops anything
-// closed that day). recDates are the best trip dates (11..15 Oct).
+// Curated full-day route themes, tuned to how experienced Bangkok travellers
+// actually do it (early starts to beat heat/crowds, river & canal boats to
+// skip traffic, motorbike taxis for short hops). The planner turns a theme's
+// places into a timed, optimised itinerary for a chosen date and auto-drops
+// anything closed. recDates are the best trip dates (11..15 Oct).
 window.THEMES = [
   {
     id: "oldcity", icon: "🛕", title: "Старый город и храмы",
-    blurb: "Большой дворец → Ват Пхо → Ват Арун и вокруг. Рано утром, до жары.",
-    area: "Раттанакосин", start: "08:30", recDates: [14, 15, 11],
-    note: "13 окт — праздник, храмы переполнены. Дресс-код обязателен.",
+    blurb: "Классика: рано утром Большой дворец → Ват Пхо → паром через реку к Ват Аруну.",
+    area: "Раттанакосин", start: "08:00", recDates: [14, 15, 11],
+    note: "13 окт — праздник, храмы переполнены. Дресс-код (плечи/колени закрыты).",
+    transport: "Дворец и Ват Пхо — пешком рядом. К Ват Аруну — паром от пирса Tha Tien (5 ฿, каждые 10–15 мин). Приезжать к открытию (8:30), пока нет жары и толп.",
     places: [3, 2, 17, 1, 31, 6, 7, 35]
   },
   {
-    id: "chinatown", icon: "🏮", title: "Чайнатаун вечером",
-    blurb: "Золотой Будда, храмы, стритфуд Яов_арата и коктейль-бары Сои Нана.",
-    area: "Чайнатаун", start: "15:30", recDates: [11, 14, 15],
-    note: "TEP BAR закрыт во вторник (13 окт). Наличные.",
+    id: "chinatown", icon: "🏮", title: "Чайнатаун вечером (стритфуд)",
+    blurb: "Золотой Будда днём, а с 18:00 — стритфуд Яоварата по переулкам.",
+    area: "Чайнатаун", start: "17:30", recDates: [11, 14, 15],
+    note: "TEP BAR закрыт во вторник (13 окт). Только наличные.",
+    transport: "Доезжать на MRT до Wat Mangkon (выход 1 — прямо на Яоварат). Вечером на такси не суйтесь — Яоварат стоит в пробке. Еда по маленьким сои, не на главной; ~300–500 ฿ на 4–5 блюд.",
     places: [8, 9, 34, 76, 30, 55, 56, 57]
   },
   {
@@ -21,6 +25,7 @@ window.THEMES = [
     blurb: "Антикварные кафе, муралы и тихие переулки у реки.",
     area: "Талат Ной / Сонгват", start: "09:30", recDates: [11, 15],
     note: "Многое закрыто в пн (12). HUGS закрыт вт–ср (13–14).",
+    transport: "Удобно доплыть на речном экспрессе до Marine Dept / Ratchawong, дальше пешком. Между кафе — короткие концы пешком или на мотобайке (20–40 ฿).",
     places: [62, 63, 72, 36, 91, 74, 94]
   },
   {
@@ -28,20 +33,23 @@ window.THEMES = [
     blurb: "Джим Томпсон, BACC, Сиам-Парагон, MBK, поп-апы и святилище Эраван.",
     area: "Патумван", start: "10:00", recDates: [14, 15, 11],
     note: "BACC закрыт в пн (12).",
+    transport: "Всё нанизано на BTS (Siam / National Stadium). От Старого города сюда — лодка по каналу Саенсэп до Hua Chang/Pratunam (объезжает пробки, 12–20 ฿).",
     places: [10, 16, 21, 89, 38, 22, 75, 15]
   },
   {
     id: "sukhumvit", icon: "🌆", title: "Сукхумвит и руфтопы",
     blurb: "Парк Бенчакитти, ТЦ с кондиционером днём, руфтоп-бары на закате.",
-    area: "Сукхумвит", start: "14:00", recDates: [11, 12, 14, 15],
+    area: "Сукхумвит", start: "15:00", recDates: [11, 12, 14, 15],
     note: "Руфтопы — лучше бронь. Дресс-код в Sky-барах.",
+    transport: "BTS вдоль всего Сукхумвита; на короткие концы до бара — мотобайк (быстрее в пробке). От Сиама — канал Саенсэп до Nana/Asok.",
     places: [19, 23, 24, 45, 44, 41]
   },
   {
     id: "chatuchak", icon: "🧺", title: "Чатучак (только Вс)",
     blurb: "Гигантский рынок выходного дня, гурмэ-рынок Ор Тор Кор и MOCA.",
-    area: "Чатучак", start: "09:00", recDates: [11],
+    area: "Чатучак", start: "08:30", recDates: [11],
     note: "Рынок полноценно только в вс (11). MOCA закрыт в пн.",
+    transport: "BTS Mo Chit или MRT Chatuchak/Kamphaeng Phet — прямо ко входу. Приезжать рано (до жары и толп), брать наличные и воду.",
     places: [29, 32, 11, 28]
   },
   {
@@ -49,20 +57,23 @@ window.THEMES = [
     blurb: "Спешелти-кофе, смотровая Маханакхон и легендарный Sky Bar.",
     area: "Сатон / Силом", start: "09:00", recDates: [11, 12, 14, 15],
     note: "Sky Bar — строгий дресс-код (без шорт/сандалий).",
+    transport: "BTS Silom / Chong Nonsi / Saphan Taksin, MRT Si Lom/Sam Yan. Между кофейнями — пешком или мотобайк.",
     places: [65, 78, 64, 12, 58, 42]
   },
   {
     id: "thonburi", icon: "🚤", title: "Тонбури и река",
     blurb: "Ват Пакнам, ICONSIAM, речные виды и руфтоп у реки.",
     area: "Тонбури", start: "10:00", recDates: [11, 12, 14, 15],
-    note: "Удобно передвигаться катером по Чао Прайе.",
+    note: "Стоит совмещать с речным транспортом.",
+    transport: "Речной экспресс + бесплатный шаттл ICONSIAM от пирса Sathorn. К Ват Пакнам — от него мотобайк/такси (в стороне от реки).",
     places: [4, 20, 88, 40, 50]
   },
   {
     id: "floating", icon: "🛶", title: "Плавучие рынки (Вс)",
     blurb: "Локальные плавучие рынки запада — только по выходным.",
-    area: "Запад / Талинг Чан", start: "08:00", recDates: [11],
-    note: "Работают только сб–вс, значит в поездке — вс 11 окт.",
+    area: "Запад / Талинг Чан", start: "07:00", recDates: [11],
+    note: "Работают только сб–вс → в поездке это вс 11 окт.",
+    transport: "Далеко от центра — берите Grab/такси и выезжайте рано утром (к полудню всё сворачивается и жарко).",
     places: [97, 98, 96]
   }
 ];

@@ -30,6 +30,12 @@
     TAXI_SPEED_KMH: 16, // effective incl. traffic
     TAXI_BASE_FARE: 35, // ฿ first km
     TAXI_PER_KM: 6.5,   // ฿/km after
+    // Motorbike taxi / GrabBike — fastest for short hops, weaves through traffic
+    BIKE_SPEED_KMH: 23, BIKE_BASE_FARE: 20, BIKE_PER_KM: 14, // ฿
+    // Khlong Saen Saep canal boat (Golden Mount ↔ Pratunam ↔ Sukhumvit)
+    CANAL_PER_STOP_MIN: 2.5, CANAL_WAIT_MIN: 8, CANAL_SNAP_M: 750, CANAL_FARE: 20, // ฿
+    // Cross-river ferry (e.g. Tha Tien ↔ Wat Arun) — 5 ฿, every 10–15 min
+    FERRY_CROSS_MIN: 5, FERRY_WAIT_MIN: 6, FERRY_SNAP_M: 550, FERRY_FARE: 5, // ฿
     WALK_PREFER_M: 1200 // below this, walking is preferred even if rail is faster
   };
 
@@ -51,5 +57,13 @@
     return { min, fare, km };
   }
 
-  window.GEO = { haversine, walkMinutes, walkRoadKm, taxi, P, effWalkKmh };
+  // Motorbike taxi / GrabBike estimate.
+  function bike(straightM) {
+    const km = walkRoadKm(straightM);
+    const min = km / P.BIKE_SPEED_KMH * 60 + 1; // +1 min hail
+    const fare = P.BIKE_BASE_FARE + Math.max(0, km - 0.5) * P.BIKE_PER_KM;
+    return { min, fare, km };
+  }
+
+  window.GEO = { haversine, walkMinutes, walkRoadKm, taxi, bike, P, effWalkKmh };
 })();

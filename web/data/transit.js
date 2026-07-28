@@ -51,7 +51,26 @@ window.TRANSIT = {
     ["Si Phraya (ICONSIAM)", 100.5128, 13.7266], ["Ratchawong", 100.5085, 13.7338],
     ["Marine Dept", 100.5060, 13.7378], ["Rachini", 100.4960, 13.7420],
     ["Tha Tien (Wat Pho)", 100.4915, 13.7433], ["Tha Chang (Grand Palace)", 100.4905, 13.7502],
-    ["Maharaj", 100.4900, 13.7540], ["Phra Arthit (Khaosan)", 100.4945, 13.7607],
-    ["Wat Arun (cross-river)", 100.4889, 13.7437]
-  ]
+    ["Maharaj", 100.4900, 13.7540], ["Phra Arthit (Khaosan)", 100.4945, 13.7607]
+  ],
+  // Cross-river ferry hops (5 ฿, every 10–15 min): [name, lon, lat]
+  ferries: [
+    ["Tha Tien ⇄ Wat Arun", 100.4900, 13.7435],
+    ["Tha Chang ⇄ Wang Lang", 100.4890, 13.7500]
+  ],
+  // Khlong Saen Saep canal boat (west -> east). Cash 12–20 ฿, ~every 20 min,
+  // 05:00–21:00. Great for skipping road traffic Old City ↔ Siam ↔ Sukhumvit.
+  canal: {
+    name: "Khlong Saen Saep", color: "#00897B",
+    stops: [
+      ["Phanfa (Golden Mount)", 100.5065, 13.7545],
+      ["Saphan Hua Chang (Jim Thompson)", 100.5300, 13.7513],
+      ["Pratunam", 100.5400, 13.7505],
+      ["Withayu (Wireless)", 100.5465, 13.7492],
+      ["Nana Nua", 100.5560, 13.7470],
+      ["Asok (Charn Issara)", 100.5640, 13.7450],
+      ["Thong Lo", 100.5800, 13.7395],
+      ["Ekkamai", 100.5860, 13.7345]
+    ]
+  }
 };

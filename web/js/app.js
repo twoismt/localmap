@@ -163,6 +163,17 @@
     map.addLayer({ id: "stations", type: "circle", source: "stations",
       minzoom: 12.5,
       paint: { "circle-radius": 3.2, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": ["get", "color"] } });
+    // canal boat line (Saen Saep)
+    map.addSource("canalboat", { type: "geojson", data: {
+      type: "Feature", properties: {},
+      geometry: { type: "LineString", coordinates: TRANSIT.canal.stops.map(s => [s[1], s[2]]) } } });
+    map.addLayer({ id: "canalboat", type: "line", source: "canalboat",
+      paint: { "line-color": TRANSIT.canal.color, "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2, 16, 4], "line-dasharray": [3, 1.5], "line-opacity": .9 } });
+    map.addSource("canalstops", { type: "geojson", data: {
+      type: "FeatureCollection", features: TRANSIT.canal.stops.map(s => ({
+        type: "Feature", properties: { name: s[0] }, geometry: { type: "Point", coordinates: [s[1], s[2]] } })) } });
+    map.addLayer({ id: "canalstops", type: "circle", source: "canalstops", minzoom: 12.5,
+      paint: { "circle-radius": 3, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": TRANSIT.canal.color } });
     // route (dynamic)
     map.addSource("route", { type: "geojson", data: empty() });
     map.addLayer({ id: "route", type: "line", source: "route",
@@ -213,6 +224,14 @@
       layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 9.5,
         "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
       paint: { "text-color": ["get", "color"], "text-halo-color": halo, "text-halo-width": 1.3 } });
+    // canal boat line + stops
+    map.addLayer({ id: "canalboat-label", type: "symbol", source: "canalboat", minzoom: 12.5,
+      layout: { "symbol-placement": "line", "text-field": "Лодка Саенсэп", "text-font": ["DejaVu Sans"], "text-size": 10.5 },
+      paint: { "text-color": TRANSIT.canal.color, "text-halo-color": halo, "text-halo-width": 1.3 } });
+    map.addLayer({ id: "canalstop-label", type: "symbol", source: "canalstops", minzoom: 14,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 9,
+        "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
+      paint: { "text-color": TRANSIT.canal.color, "text-halo-color": halo, "text-halo-width": 1.2 } });
     // place names
     map.addLayer({ id: "place-label", type: "symbol", source: "places", minzoom: 13.5,
       layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 11,
@@ -316,7 +335,9 @@
   function renderThemes() {
     const c = $("#tab-routes"); c.innerHTML = "";
     c.appendChild(el("div", "hint-bar",
-      "Готовые маршруты на день. Нажмите «Построить план» — приложение оптимизирует порядок под выбранную дату и уберёт закрытые места."));
+      "Готовые маршруты на день (составлены по реальному опыту путешественников). Нажмите «Построить план» — приложение оптимизирует порядок под выбранную дату и уберёт закрытые места."));
+    c.appendChild(el("div", "hint-bar",
+      "🚇 Как перемещаться: <b>BTS/MRT</b> — быстро и без пробок; <b>речной экспресс</b> и <b>паром</b> (5 ฿) вдоль/через Чао Прайю; <b>лодка по каналу Саенсэп</b> (12–20 ฿) в обход пробок Старый город↔Сиам↔Сукхумвит; <b>мотобайк/GrabBike</b> — самый быстрый на короткие концы (20–60 ฿). Маршрутизатор сам подбирает лучший способ между точками."));
     THEMES.forEach(t => {
       const openCount = t.places.map(placeById).filter(p => p && p.trip[String(store.date)] !== "closed").length;
       const rec = t.recDates.includes(store.date);
@@ -324,6 +345,7 @@
       div.innerHTML =
         `<h3>${t.icon} ${t.title}</h3>
          <div class="blurb">${t.blurb}</div>
+         ${t.transport ? `<div class="note" style="color:var(--muted)">🚇 ${t.transport}</div>` : ""}
          <div class="note">⚠ ${t.note}</div>
          <div class="meta" style="margin-bottom:8px">
            <span class="badge">${t.area}</span>
@@ -416,7 +438,7 @@
     drawRoute(routeGeom);
     fitTo(res.steps.map(s => s.place));
   }
-  function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "⛴️", taxi: "🚕" }[m] || "→"; }
+  function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "🚤", canal: "🛶", ferry: "⛴️", bike: "🏍️", taxi: "🚕" }[m] || "→"; }
 
   // ---------- favorites ----------
   function renderFav() {

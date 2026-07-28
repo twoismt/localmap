@@ -6754,9 +6754,28 @@ window.TRANSIT = {
     ["Si Phraya (ICONSIAM)", 100.5128, 13.7266], ["Ratchawong", 100.5085, 13.7338],
     ["Marine Dept", 100.5060, 13.7378], ["Rachini", 100.4960, 13.7420],
     ["Tha Tien (Wat Pho)", 100.4915, 13.7433], ["Tha Chang (Grand Palace)", 100.4905, 13.7502],
-    ["Maharaj", 100.4900, 13.7540], ["Phra Arthit (Khaosan)", 100.4945, 13.7607],
-    ["Wat Arun (cross-river)", 100.4889, 13.7437]
-  ]
+    ["Maharaj", 100.4900, 13.7540], ["Phra Arthit (Khaosan)", 100.4945, 13.7607]
+  ],
+  // Cross-river ferry hops (5 ฿, every 10–15 min): [name, lon, lat]
+  ferries: [
+    ["Tha Tien ⇄ Wat Arun", 100.4900, 13.7435],
+    ["Tha Chang ⇄ Wang Lang", 100.4890, 13.7500]
+  ],
+  // Khlong Saen Saep canal boat (west -> east). Cash 12–20 ฿, ~every 20 min,
+  // 05:00–21:00. Great for skipping road traffic Old City ↔ Siam ↔ Sukhumvit.
+  canal: {
+    name: "Khlong Saen Saep", color: "#00897B",
+    stops: [
+      ["Phanfa (Golden Mount)", 100.5065, 13.7545],
+      ["Saphan Hua Chang (Jim Thompson)", 100.5300, 13.7513],
+      ["Pratunam", 100.5400, 13.7505],
+      ["Withayu (Wireless)", 100.5465, 13.7492],
+      ["Nana Nua", 100.5560, 13.7470],
+      ["Asok (Charn Issara)", 100.5640, 13.7450],
+      ["Thong Lo", 100.5800, 13.7395],
+      ["Ekkamai", 100.5860, 13.7345]
+    ]
+  }
 };
 
 // Offline schematic-but-geolocated basemap for central Bangkok: the Chao
@@ -6829,7 +6848,26 @@ window.BASEMAP = {
     { name: "Asok Montri (Soi 21)", class: "street", coords: [[100.5601,13.7367],[100.5620,13.7440],[100.5648,13.7486]] },
     { name: "Thong Lo (Soi 55)", class: "street", coords: [[100.5786,13.7240],[100.5820,13.7330],[100.5830,13.7420]] },
     { name: "Ekkamai (Soi 63)", class: "street", coords: [[100.5853,13.7194],[100.5852,13.7290],[100.5850,13.7370]] },
-    { name: "Din Daeng Rd", class: "secondary", coords: [[100.5374,13.7649],[100.5450,13.7660],[100.5540,13.7660],[100.5658,13.7576]] }
+    { name: "Din Daeng Rd", class: "secondary", coords: [[100.5374,13.7649],[100.5450,13.7660],[100.5540,13.7660],[100.5658,13.7576]] },
+    { name: "Maha Rat Rd", class: "street", coords: [[100.4905,13.7502],[100.4912,13.7460],[100.4915,13.7433]] },
+    { name: "Na Phra Lan", class: "street", coords: [[100.4914,13.7510],[100.4938,13.7512]] },
+    { name: "Sanam Chai Rd", class: "street", coords: [[100.4939,13.7500],[100.4940,13.7440],[100.4945,13.7400]] },
+    { name: "Tri Phet Rd", class: "street", coords: [[100.4966,13.7405],[100.4975,13.7445],[100.4980,13.7475]] },
+    { name: "Chak Phet Rd", class: "street", coords: [[100.4966,13.7405],[100.5005,13.7398]] },
+    { name: "Bamrung Muang Rd", class: "street", coords: [[100.5005,13.7520],[100.5060,13.7515],[100.5095,13.7508]] },
+    { name: "Dinso Rd", class: "street", coords: [[100.5012,13.7562],[100.5015,13.7525],[100.5010,13.7498]] },
+    { name: "Tanao Rd", class: "street", coords: [[100.4990,13.7582],[100.4996,13.7552],[100.5002,13.7522]] },
+    { name: "Soi Rambuttri", class: "street", coords: [[100.4948,13.7602],[100.4978,13.7596]] },
+    { name: "Song Wat Rd", class: "street", coords: [[100.5040,13.7360],[100.5078,13.7377],[100.5120,13.7362]] },
+    { name: "Sampeng (Soi Wanit 1)", class: "street", coords: [[100.5058,13.7402],[100.5100,13.7396],[100.5142,13.7386]] },
+    { name: "Mangkon Rd", class: "street", coords: [[100.5106,13.7376],[100.5106,13.7432]] },
+    { name: "Convent Rd", class: "street", coords: [[100.5300,13.7272],[100.5292,13.7240]] },
+    { name: "Sala Daeng Rd", class: "street", coords: [[100.5342,13.7286],[100.5352,13.7268]] },
+    { name: "Henri Dunant Rd", class: "secondary", coords: [[100.5340,13.7455],[100.5346,13.7400],[100.5350,13.7360]] },
+    { name: "Sukhumvit Soi 11", class: "street", coords: [[100.5551,13.7404],[100.5560,13.7440],[100.5560,13.7472]] },
+    { name: "Sukhumvit Soi 38", class: "street", coords: [[100.5786,13.7240],[100.5792,13.7212]] },
+    { name: "Soi Ari", class: "street", coords: [[100.5445,13.7797],[100.5418,13.7802],[100.5398,13.7806]] },
+    { name: "Krung Thonburi Soi", class: "street", coords: [[100.5090,13.7213],[100.5088,13.7160]] }
   ],
   districts: [
     { name: "Раттанакосин", lon: 100.4955, lat: 13.7520 },
@@ -6855,22 +6893,26 @@ window.BASEMAP = {
   ]
 };
 
-// Curated full-day route themes. The planner turns a theme's places into a
-// timed, optimised itinerary for a chosen date (and auto-drops anything
-// closed that day). recDates are the best trip dates (11..15 Oct).
+// Curated full-day route themes, tuned to how experienced Bangkok travellers
+// actually do it (early starts to beat heat/crowds, river & canal boats to
+// skip traffic, motorbike taxis for short hops). The planner turns a theme's
+// places into a timed, optimised itinerary for a chosen date and auto-drops
+// anything closed. recDates are the best trip dates (11..15 Oct).
 window.THEMES = [
   {
     id: "oldcity", icon: "🛕", title: "Старый город и храмы",
-    blurb: "Большой дворец → Ват Пхо → Ват Арун и вокруг. Рано утром, до жары.",
-    area: "Раттанакосин", start: "08:30", recDates: [14, 15, 11],
-    note: "13 окт — праздник, храмы переполнены. Дресс-код обязателен.",
+    blurb: "Классика: рано утром Большой дворец → Ват Пхо → паром через реку к Ват Аруну.",
+    area: "Раттанакосин", start: "08:00", recDates: [14, 15, 11],
+    note: "13 окт — праздник, храмы переполнены. Дресс-код (плечи/колени закрыты).",
+    transport: "Дворец и Ват Пхо — пешком рядом. К Ват Аруну — паром от пирса Tha Tien (5 ฿, каждые 10–15 мин). Приезжать к открытию (8:30), пока нет жары и толп.",
     places: [3, 2, 17, 1, 31, 6, 7, 35]
   },
   {
-    id: "chinatown", icon: "🏮", title: "Чайнатаун вечером",
-    blurb: "Золотой Будда, храмы, стритфуд Яов_арата и коктейль-бары Сои Нана.",
-    area: "Чайнатаун", start: "15:30", recDates: [11, 14, 15],
-    note: "TEP BAR закрыт во вторник (13 окт). Наличные.",
+    id: "chinatown", icon: "🏮", title: "Чайнатаун вечером (стритфуд)",
+    blurb: "Золотой Будда днём, а с 18:00 — стритфуд Яоварата по переулкам.",
+    area: "Чайнатаун", start: "17:30", recDates: [11, 14, 15],
+    note: "TEP BAR закрыт во вторник (13 окт). Только наличные.",
+    transport: "Доезжать на MRT до Wat Mangkon (выход 1 — прямо на Яоварат). Вечером на такси не суйтесь — Яоварат стоит в пробке. Еда по маленьким сои, не на главной; ~300–500 ฿ на 4–5 блюд.",
     places: [8, 9, 34, 76, 30, 55, 56, 57]
   },
   {
@@ -6878,6 +6920,7 @@ window.THEMES = [
     blurb: "Антикварные кафе, муралы и тихие переулки у реки.",
     area: "Талат Ной / Сонгват", start: "09:30", recDates: [11, 15],
     note: "Многое закрыто в пн (12). HUGS закрыт вт–ср (13–14).",
+    transport: "Удобно доплыть на речном экспрессе до Marine Dept / Ratchawong, дальше пешком. Между кафе — короткие концы пешком или на мотобайке (20–40 ฿).",
     places: [62, 63, 72, 36, 91, 74, 94]
   },
   {
@@ -6885,20 +6928,23 @@ window.THEMES = [
     blurb: "Джим Томпсон, BACC, Сиам-Парагон, MBK, поп-апы и святилище Эраван.",
     area: "Патумван", start: "10:00", recDates: [14, 15, 11],
     note: "BACC закрыт в пн (12).",
+    transport: "Всё нанизано на BTS (Siam / National Stadium). От Старого города сюда — лодка по каналу Саенсэп до Hua Chang/Pratunam (объезжает пробки, 12–20 ฿).",
     places: [10, 16, 21, 89, 38, 22, 75, 15]
   },
   {
     id: "sukhumvit", icon: "🌆", title: "Сукхумвит и руфтопы",
     blurb: "Парк Бенчакитти, ТЦ с кондиционером днём, руфтоп-бары на закате.",
-    area: "Сукхумвит", start: "14:00", recDates: [11, 12, 14, 15],
+    area: "Сукхумвит", start: "15:00", recDates: [11, 12, 14, 15],
     note: "Руфтопы — лучше бронь. Дресс-код в Sky-барах.",
+    transport: "BTS вдоль всего Сукхумвита; на короткие концы до бара — мотобайк (быстрее в пробке). От Сиама — канал Саенсэп до Nana/Asok.",
     places: [19, 23, 24, 45, 44, 41]
   },
   {
     id: "chatuchak", icon: "🧺", title: "Чатучак (только Вс)",
     blurb: "Гигантский рынок выходного дня, гурмэ-рынок Ор Тор Кор и MOCA.",
-    area: "Чатучак", start: "09:00", recDates: [11],
+    area: "Чатучак", start: "08:30", recDates: [11],
     note: "Рынок полноценно только в вс (11). MOCA закрыт в пн.",
+    transport: "BTS Mo Chit или MRT Chatuchak/Kamphaeng Phet — прямо ко входу. Приезжать рано (до жары и толп), брать наличные и воду.",
     places: [29, 32, 11, 28]
   },
   {
@@ -6906,20 +6952,23 @@ window.THEMES = [
     blurb: "Спешелти-кофе, смотровая Маханакхон и легендарный Sky Bar.",
     area: "Сатон / Силом", start: "09:00", recDates: [11, 12, 14, 15],
     note: "Sky Bar — строгий дресс-код (без шорт/сандалий).",
+    transport: "BTS Silom / Chong Nonsi / Saphan Taksin, MRT Si Lom/Sam Yan. Между кофейнями — пешком или мотобайк.",
     places: [65, 78, 64, 12, 58, 42]
   },
   {
     id: "thonburi", icon: "🚤", title: "Тонбури и река",
     blurb: "Ват Пакнам, ICONSIAM, речные виды и руфтоп у реки.",
     area: "Тонбури", start: "10:00", recDates: [11, 12, 14, 15],
-    note: "Удобно передвигаться катером по Чао Прайе.",
+    note: "Стоит совмещать с речным транспортом.",
+    transport: "Речной экспресс + бесплатный шаттл ICONSIAM от пирса Sathorn. К Ват Пакнам — от него мотобайк/такси (в стороне от реки).",
     places: [4, 20, 88, 40, 50]
   },
   {
     id: "floating", icon: "🛶", title: "Плавучие рынки (Вс)",
     blurb: "Локальные плавучие рынки запада — только по выходным.",
-    area: "Запад / Талинг Чан", start: "08:00", recDates: [11],
-    note: "Работают только сб–вс, значит в поездке — вс 11 окт.",
+    area: "Запад / Талинг Чан", start: "07:00", recDates: [11],
+    note: "Работают только сб–вс → в поездке это вс 11 окт.",
+    transport: "Далеко от центра — берите Grab/такси и выезжайте рано утром (к полудню всё сворачивается и жарко).",
     places: [97, 98, 96]
   }
 ];
@@ -6956,6 +7005,12 @@ window.THEMES = [
     TAXI_SPEED_KMH: 16, // effective incl. traffic
     TAXI_BASE_FARE: 35, // ฿ first km
     TAXI_PER_KM: 6.5,   // ฿/km after
+    // Motorbike taxi / GrabBike — fastest for short hops, weaves through traffic
+    BIKE_SPEED_KMH: 23, BIKE_BASE_FARE: 20, BIKE_PER_KM: 14, // ฿
+    // Khlong Saen Saep canal boat (Golden Mount ↔ Pratunam ↔ Sukhumvit)
+    CANAL_PER_STOP_MIN: 2.5, CANAL_WAIT_MIN: 8, CANAL_SNAP_M: 750, CANAL_FARE: 20, // ฿
+    // Cross-river ferry (e.g. Tha Tien ↔ Wat Arun) — 5 ฿, every 10–15 min
+    FERRY_CROSS_MIN: 5, FERRY_WAIT_MIN: 6, FERRY_SNAP_M: 550, FERRY_FARE: 5, // ฿
     WALK_PREFER_M: 1200 // below this, walking is preferred even if rail is faster
   };
 
@@ -6977,12 +7032,20 @@ window.THEMES = [
     return { min, fare, km };
   }
 
-  window.GEO = { haversine, walkMinutes, walkRoadKm, taxi, P, effWalkKmh };
+  // Motorbike taxi / GrabBike estimate.
+  function bike(straightM) {
+    const km = walkRoadKm(straightM);
+    const min = km / P.BIKE_SPEED_KMH * 60 + 1; // +1 min hail
+    const fare = P.BIKE_BASE_FARE + Math.max(0, km - 0.5) * P.BIKE_PER_KM;
+    return { min, fare, km };
+  }
+
+  window.GEO = { haversine, walkMinutes, walkRoadKm, taxi, bike, P, effWalkKmh };
 })();
 </script>
 <script>// planner.js — multimodal point-to-point routing + full-day optimiser.
 (function () {
-  const { haversine, walkMinutes, walkRoadKm, taxi, P } = window.GEO;
+  const { haversine, walkMinutes, walkRoadKm, taxi, bike, P } = window.GEO;
 
   // ---- Rail graph (built once from TRANSIT) --------------------------------
   let RAIL = null;
@@ -7067,12 +7130,36 @@ window.THEMES = [
     });
     return bd <= maxM ? { i: bi, dist: bd } : null;
   }
+  function nearestCanalIndex(lonlat, maxM) {
+    let bi = -1, bd = Infinity;
+    TRANSIT.canal.stops.forEach((s, i) => {
+      const d = haversine(lonlat, [s[1], s[2]]);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    return bd <= maxM ? { i: bi, dist: bd } : null;
+  }
+  // Interpolated longitude of the Chao Phraya at a given latitude (for bank test)
+  function riverLonAt(lat) {
+    const c = BASEMAP.river.geometry.coordinates;
+    let best = null, bd = Infinity;
+    for (let i = 0; i < c.length - 1; i++) {
+      const [x1, y1] = c[i], [x2, y2] = c[i + 1];
+      if ((lat >= Math.min(y1, y2)) && (lat <= Math.max(y1, y2))) {
+        const t = (lat - y1) / (y2 - y1 || 1e-9);
+        return x1 + t * (x2 - x1);
+      }
+      const dm = Math.min(Math.abs(lat - y1), Math.abs(lat - y2));
+      if (dm < bd) { bd = dm; best = (x1 + x2) / 2; }
+    }
+    return best;
+  }
 
   // ---- Multimodal route between two [lon,lat] points -----------------------
   // Returns { best, options:[{mode,min,fare,legs,geometry,label}] }
   function route(a, b) {
     const straight = haversine(a, b);
     const options = [];
+    let crossRiver = false;
 
     // WALK
     {
@@ -7129,6 +7216,56 @@ window.THEMES = [
         });
       }
     }
+    // CANAL BOAT (Khlong Saen Saep)
+    {
+      const cA = nearestCanalIndex(a, P.CANAL_SNAP_M);
+      const cB = nearestCanalIndex(b, P.CANAL_SNAP_M);
+      if (cA && cB && cA.i !== cB.i) {
+        const hops = Math.abs(cA.i - cB.i);
+        const wA = walkMinutes(cA.dist), wB = walkMinutes(cB.dist);
+        const min = wA + P.CANAL_WAIT_MIN + hops * P.CANAL_PER_STOP_MIN + wB;
+        const lo = Math.min(cA.i, cB.i), hi = Math.max(cA.i, cB.i);
+        const stopPts = TRANSIT.canal.stops.slice(lo, hi + 1).map(s => [s[1], s[2]]);
+        const geom = [a, [TRANSIT.canal.stops[cA.i][1], TRANSIT.canal.stops[cA.i][2]],
+          ...stopPts, [TRANSIT.canal.stops[cB.i][1], TRANSIT.canal.stops[cB.i][2]], b];
+        options.push({
+          mode: "canal", min, fare: P.CANAL_FARE, geometry: geom,
+          label: "Лодка по каналу (Саенсэп)",
+          legs: [{ t: "walk", min: wA, to: TRANSIT.canal.stops[cA.i][0] },
+                 { t: "canal", min: hops * P.CANAL_PER_STOP_MIN + P.CANAL_WAIT_MIN },
+                 { t: "walk", min: wB }]
+        });
+      }
+    }
+    // CROSS-RIVER FERRY (opposite banks, both near the river)
+    {
+      const rlA = riverLonAt(a[1]), rlB = riverLonAt(b[1]);
+      if (rlA != null && rlB != null) {
+        const sideA = Math.sign(a[0] - rlA), sideB = Math.sign(b[0] - rlB);
+        const nearA = haversine(a, [rlA, a[1]]) <= P.FERRY_SNAP_M * 2;
+        const nearB = haversine(b, [rlB, b[1]]) <= P.FERRY_SNAP_M * 2;
+        if (sideA !== 0 && sideB !== 0 && sideA !== sideB && nearA && nearB) {
+          crossRiver = true;
+          // walk to a mid-river ferry point at each bank, cross
+          const pA = [rlA, a[1]], pB = [rlB, b[1]];
+          const wA = walkMinutes(haversine(a, pA)), wB = walkMinutes(haversine(pB, b));
+          const min = wA + P.FERRY_WAIT_MIN + P.FERRY_CROSS_MIN + wB;
+          options.push({
+            mode: "ferry", min, fare: P.FERRY_FARE, geometry: [a, pA, pB, b],
+            label: "Переправа через реку",
+            legs: [{ t: "walk", min: wA }, { t: "ferry", min: P.FERRY_CROSS_MIN + P.FERRY_WAIT_MIN }, { t: "walk", min: wB }]
+          });
+        }
+      }
+    }
+    // MOTORBIKE TAXI / GRABBIKE (fast for short hops, beats traffic)
+    {
+      const bk = bike(straight);
+      options.push({
+        mode: "bike", min: bk.min, fare: bk.fare, km: bk.km,
+        label: "Мотобайк / GrabBike", geometry: [a, b], legs: [{ t: "bike", min: bk.min }]
+      });
+    }
     // TAXI / GRAB
     {
       const tx = taxi(straight);
@@ -7138,12 +7275,16 @@ window.THEMES = [
       });
     }
 
+    // If the two points sit on opposite banks near the river, you can't walk /
+    // ride straight across — keep only the water/rail options that truly cross.
+    let opts = options;
+    if (crossRiver) opts = options.filter(o => !["walk", "bike", "taxi"].includes(o.mode));
     // choose best: prefer walk when short & pleasant, else min time
     let best;
-    const walk = options.find(o => o.mode === "walk");
-    if (straight * P.DETOUR <= P.WALK_PREFER_M) best = walk;
-    else best = options.slice().sort((x, y) => x.min - y.min)[0];
-    return { best, options, straight };
+    const walk = opts.find(o => o.mode === "walk");
+    if (walk && straight * P.DETOUR <= P.WALK_PREFER_M) best = walk;
+    else best = opts.slice().sort((x, y) => x.min - y.min)[0];
+    return { best, options: opts, straight };
   }
 
   // ---- Day optimiser -------------------------------------------------------
@@ -7444,6 +7585,17 @@ window.THEMES = [
     map.addLayer({ id: "stations", type: "circle", source: "stations",
       minzoom: 12.5,
       paint: { "circle-radius": 3.2, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": ["get", "color"] } });
+    // canal boat line (Saen Saep)
+    map.addSource("canalboat", { type: "geojson", data: {
+      type: "Feature", properties: {},
+      geometry: { type: "LineString", coordinates: TRANSIT.canal.stops.map(s => [s[1], s[2]]) } } });
+    map.addLayer({ id: "canalboat", type: "line", source: "canalboat",
+      paint: { "line-color": TRANSIT.canal.color, "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2, 16, 4], "line-dasharray": [3, 1.5], "line-opacity": .9 } });
+    map.addSource("canalstops", { type: "geojson", data: {
+      type: "FeatureCollection", features: TRANSIT.canal.stops.map(s => ({
+        type: "Feature", properties: { name: s[0] }, geometry: { type: "Point", coordinates: [s[1], s[2]] } })) } });
+    map.addLayer({ id: "canalstops", type: "circle", source: "canalstops", minzoom: 12.5,
+      paint: { "circle-radius": 3, "circle-color": "#fff", "circle-stroke-width": 2, "circle-stroke-color": TRANSIT.canal.color } });
     // route (dynamic)
     map.addSource("route", { type: "geojson", data: empty() });
     map.addLayer({ id: "route", type: "line", source: "route",
@@ -7494,6 +7646,14 @@ window.THEMES = [
       layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 9.5,
         "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
       paint: { "text-color": ["get", "color"], "text-halo-color": halo, "text-halo-width": 1.3 } });
+    // canal boat line + stops
+    map.addLayer({ id: "canalboat-label", type: "symbol", source: "canalboat", minzoom: 12.5,
+      layout: { "symbol-placement": "line", "text-field": "Лодка Саенсэп", "text-font": ["DejaVu Sans"], "text-size": 10.5 },
+      paint: { "text-color": TRANSIT.canal.color, "text-halo-color": halo, "text-halo-width": 1.3 } });
+    map.addLayer({ id: "canalstop-label", type: "symbol", source: "canalstops", minzoom: 14,
+      layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 9,
+        "text-offset": [0, 0.9], "text-anchor": "top", "text-optional": true },
+      paint: { "text-color": TRANSIT.canal.color, "text-halo-color": halo, "text-halo-width": 1.2 } });
     // place names
     map.addLayer({ id: "place-label", type: "symbol", source: "places", minzoom: 13.5,
       layout: { "text-field": ["get", "name"], "text-font": ["DejaVu Sans"], "text-size": 11,
@@ -7597,7 +7757,9 @@ window.THEMES = [
   function renderThemes() {
     const c = $("#tab-routes"); c.innerHTML = "";
     c.appendChild(el("div", "hint-bar",
-      "Готовые маршруты на день. Нажмите «Построить план» — приложение оптимизирует порядок под выбранную дату и уберёт закрытые места."));
+      "Готовые маршруты на день (составлены по реальному опыту путешественников). Нажмите «Построить план» — приложение оптимизирует порядок под выбранную дату и уберёт закрытые места."));
+    c.appendChild(el("div", "hint-bar",
+      "🚇 Как перемещаться: <b>BTS/MRT</b> — быстро и без пробок; <b>речной экспресс</b> и <b>паром</b> (5 ฿) вдоль/через Чао Прайю; <b>лодка по каналу Саенсэп</b> (12–20 ฿) в обход пробок Старый город↔Сиам↔Сукхумвит; <b>мотобайк/GrabBike</b> — самый быстрый на короткие концы (20–60 ฿). Маршрутизатор сам подбирает лучший способ между точками."));
     THEMES.forEach(t => {
       const openCount = t.places.map(placeById).filter(p => p && p.trip[String(store.date)] !== "closed").length;
       const rec = t.recDates.includes(store.date);
@@ -7605,6 +7767,7 @@ window.THEMES = [
       div.innerHTML =
         `<h3>${t.icon} ${t.title}</h3>
          <div class="blurb">${t.blurb}</div>
+         ${t.transport ? `<div class="note" style="color:var(--muted)">🚇 ${t.transport}</div>` : ""}
          <div class="note">⚠ ${t.note}</div>
          <div class="meta" style="margin-bottom:8px">
            <span class="badge">${t.area}</span>
@@ -7697,7 +7860,7 @@ window.THEMES = [
     drawRoute(routeGeom);
     fitTo(res.steps.map(s => s.place));
   }
-  function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "⛴️", taxi: "🚕" }[m] || "→"; }
+  function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "🚤", canal: "🛶", ferry: "⛴️", bike: "🏍️", taxi: "🚕" }[m] || "→"; }
 
   // ---------- favorites ----------
   function renderFav() {

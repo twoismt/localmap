@@ -1,6 +1,6 @@
 // planner.js — multimodal point-to-point routing + full-day optimiser.
 (function () {
-  const { haversine, walkMinutes, walkRoadKm, taxi, P } = window.GEO;
+  const { haversine, walkMinutes, walkRoadKm, taxi, bike, P } = window.GEO;
 
   // ---- Rail graph (built once from TRANSIT) --------------------------------
   let RAIL = null;
@@ -85,12 +85,36 @@
     });
     return bd <= maxM ? { i: bi, dist: bd } : null;
   }
+  function nearestCanalIndex(lonlat, maxM) {
+    let bi = -1, bd = Infinity;
+    TRANSIT.canal.stops.forEach((s, i) => {
+      const d = haversine(lonlat, [s[1], s[2]]);
+      if (d < bd) { bd = d; bi = i; }
+    });
+    return bd <= maxM ? { i: bi, dist: bd } : null;
+  }
+  // Interpolated longitude of the Chao Phraya at a given latitude (for bank test)
+  function riverLonAt(lat) {
+    const c = BASEMAP.river.geometry.coordinates;
+    let best = null, bd = Infinity;
+    for (let i = 0; i < c.length - 1; i++) {
+      const [x1, y1] = c[i], [x2, y2] = c[i + 1];
+      if ((lat >= Math.min(y1, y2)) && (lat <= Math.max(y1, y2))) {
+        const t = (lat - y1) / (y2 - y1 || 1e-9);
+        return x1 + t * (x2 - x1);
+      }
+      const dm = Math.min(Math.abs(lat - y1), Math.abs(lat - y2));
+      if (dm < bd) { bd = dm; best = (x1 + x2) / 2; }
+    }
+    return best;
+  }
 
   // ---- Multimodal route between two [lon,lat] points -----------------------
   // Returns { best, options:[{mode,min,fare,legs,geometry,label}] }
   function route(a, b) {
     const straight = haversine(a, b);
     const options = [];
+    let crossRiver = false;
 
     // WALK
     {
@@ -147,6 +171,56 @@
         });
       }
     }
+    // CANAL BOAT (Khlong Saen Saep)
+    {
+      const cA = nearestCanalIndex(a, P.CANAL_SNAP_M);
+      const cB = nearestCanalIndex(b, P.CANAL_SNAP_M);
+      if (cA && cB && cA.i !== cB.i) {
+        const hops = Math.abs(cA.i - cB.i);
+        const wA = walkMinutes(cA.dist), wB = walkMinutes(cB.dist);
+        const min = wA + P.CANAL_WAIT_MIN + hops * P.CANAL_PER_STOP_MIN + wB;
+        const lo = Math.min(cA.i, cB.i), hi = Math.max(cA.i, cB.i);
+        const stopPts = TRANSIT.canal.stops.slice(lo, hi + 1).map(s => [s[1], s[2]]);
+        const geom = [a, [TRANSIT.canal.stops[cA.i][1], TRANSIT.canal.stops[cA.i][2]],
+          ...stopPts, [TRANSIT.canal.stops[cB.i][1], TRANSIT.canal.stops[cB.i][2]], b];
+        options.push({
+          mode: "canal", min, fare: P.CANAL_FARE, geometry: geom,
+          label: "Лодка по каналу (Саенсэп)",
+          legs: [{ t: "walk", min: wA, to: TRANSIT.canal.stops[cA.i][0] },
+                 { t: "canal", min: hops * P.CANAL_PER_STOP_MIN + P.CANAL_WAIT_MIN },
+                 { t: "walk", min: wB }]
+        });
+      }
+    }
+    // CROSS-RIVER FERRY (opposite banks, both near the river)
+    {
+      const rlA = riverLonAt(a[1]), rlB = riverLonAt(b[1]);
+      if (rlA != null && rlB != null) {
+        const sideA = Math.sign(a[0] - rlA), sideB = Math.sign(b[0] - rlB);
+        const nearA = haversine(a, [rlA, a[1]]) <= P.FERRY_SNAP_M * 2;
+        const nearB = haversine(b, [rlB, b[1]]) <= P.FERRY_SNAP_M * 2;
+        if (sideA !== 0 && sideB !== 0 && sideA !== sideB && nearA && nearB) {
+          crossRiver = true;
+          // walk to a mid-river ferry point at each bank, cross
+          const pA = [rlA, a[1]], pB = [rlB, b[1]];
+          const wA = walkMinutes(haversine(a, pA)), wB = walkMinutes(haversine(pB, b));
+          const min = wA + P.FERRY_WAIT_MIN + P.FERRY_CROSS_MIN + wB;
+          options.push({
+            mode: "ferry", min, fare: P.FERRY_FARE, geometry: [a, pA, pB, b],
+            label: "Переправа через реку",
+            legs: [{ t: "walk", min: wA }, { t: "ferry", min: P.FERRY_CROSS_MIN + P.FERRY_WAIT_MIN }, { t: "walk", min: wB }]
+          });
+        }
+      }
+    }
+    // MOTORBIKE TAXI / GRABBIKE (fast for short hops, beats traffic)
+    {
+      const bk = bike(straight);
+      options.push({
+        mode: "bike", min: bk.min, fare: bk.fare, km: bk.km,
+        label: "Мотобайк / GrabBike", geometry: [a, b], legs: [{ t: "bike", min: bk.min }]
+      });
+    }
     // TAXI / GRAB
     {
       const tx = taxi(straight);
@@ -156,12 +230,16 @@
       });
     }
 
+    // If the two points sit on opposite banks near the river, you can't walk /
+    // ride straight across — keep only the water/rail options that truly cross.
+    let opts = options;
+    if (crossRiver) opts = options.filter(o => !["walk", "bike", "taxi"].includes(o.mode));
     // choose best: prefer walk when short & pleasant, else min time
     let best;
-    const walk = options.find(o => o.mode === "walk");
-    if (straight * P.DETOUR <= P.WALK_PREFER_M) best = walk;
-    else best = options.slice().sort((x, y) => x.min - y.min)[0];
-    return { best, options, straight };
+    const walk = opts.find(o => o.mode === "walk");
+    if (walk && straight * P.DETOUR <= P.WALK_PREFER_M) best = walk;
+    else best = opts.slice().sort((x, y) => x.min - y.min)[0];
+    return { best, options: opts, straight };
   }
 
   // ---- Day optimiser -------------------------------------------------------
