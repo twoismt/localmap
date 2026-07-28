@@ -7433,28 +7433,45 @@ window.THEMES = [
   // Valhalla router (runs on the connected device). Falls back to a straight
   // segment on any failure (offline, CORS, timeout) so routing always works.
   const _roadCache = new Map();
+  function _fetchTimeout(url, opts, ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms || 6000);
+    return fetch(url, Object.assign({ signal: ctrl.signal }, opts || {}))
+      .finally(() => clearTimeout(t));
+  }
+  // OSRM public router — simple GET (no CORS preflight), driving profile.
+  async function _osrm(a, b) {
+    const u = `https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=full&geometries=geojson`;
+    const res = await _fetchTimeout(u, {}, 6000);
+    if (!res.ok) throw 0;
+    const j = await res.json();
+    const c = j.routes && j.routes[0] && j.routes[0].geometry && j.routes[0].geometry.coordinates;
+    if (!c || c.length < 2) throw 0;
+    return c;
+  }
+  // Valhalla public router — POST, supports a pedestrian profile.
+  async function _valhalla(a, b, costing) {
+    const res = await _fetchTimeout("https://valhalla1.openstreetmap.de/route", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locations: [{ lat: a[1], lon: a[0] }, { lat: b[1], lon: b[0] }],
+        costing: costing || "pedestrian", directions_type: "none" })
+    }, 6000);
+    if (!res.ok) throw 0;
+    const j = await res.json();
+    const shape = j.trip && j.trip.legs && j.trip.legs[0] && j.trip.legs[0].shape;
+    if (!shape) throw 0;
+    const c = decodePolyline(shape, 6);
+    if (c.length < 2) throw 0;
+    return c;
+  }
+  // Road-following polyline between two [lon,lat] points, tried against public
+  // routers on the connected device; straight-line fallback on any failure.
   async function roadRoute(a, b, costing) {
     const key = costing + a.map(n => n.toFixed(5)) + b.map(n => n.toFixed(5));
     if (_roadCache.has(key)) return _roadCache.get(key);
     let result = [a, b];
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 6000);
-      const res = await fetch("https://valhalla1.openstreetmap.de/route", {
-        method: "POST", signal: ctrl.signal,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          locations: [{ lat: a[1], lon: a[0] }, { lat: b[1], lon: b[0] }],
-          costing: costing || "pedestrian", directions_type: "none"
-        })
-      });
-      clearTimeout(t);
-      if (res.ok) {
-        const j = await res.json();
-        const shape = j.trip && j.trip.legs && j.trip.legs[0] && j.trip.legs[0].shape;
-        if (shape) { const c = decodePolyline(shape, 6); if (c.length >= 2) result = c; }
-      }
-    } catch (e) { /* keep straight fallback */ }
+    try { result = await _osrm(a, b); }
+    catch (e1) { try { result = await _valhalla(a, b, costing); } catch (e2) { /* straight */ } }
     _roadCache.set(key, result);
     return result;
   }
