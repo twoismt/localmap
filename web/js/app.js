@@ -27,7 +27,8 @@
     filter: new Set(),
     search: "",
     userLoc: null,
-    routeOrigin: null
+    routeOrigin: null,
+    realMap: localStorage.getItem("bkk_realmap") !== "0" // default on (needs internet)
   };
   const saveFav = () => localStorage.setItem("bkk_fav", JSON.stringify([...store.fav]));
   const savePlan = () => localStorage.setItem("bkk_plan", JSON.stringify(store.plan));
@@ -64,8 +65,9 @@
       container: "map",
       style: baseStyle(),
       center: [100.510, 13.742], zoom: 12.2, attributionControl: false,
-      maxBounds: [[100.05, 13.30], [100.95, 14.05]]
+      maxBounds: [[100.05, 13.30], [100.95, 14.05]], maxZoom: 19
     });
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.on("load", () => { addDataLayers(); wireMap(); });
   }
@@ -154,6 +156,18 @@
     map.addLayer({ id: "roads", type: "line", source: "roads",
       layout: { "line-cap": "round", "line-join": "round" },
       paint: { "line-color": dark ? "#3c4046" : "#ffffff", "line-width": wByClass(1) } });
+    // REAL street map (OpenStreetMap via CARTO) — loads with internet on the
+    // device and shows every street exactly; when offline the tiles simply
+    // don't load and the schematic base below shows through as a fallback.
+    const sub = dark ? "dark_all" : "voyager";
+    map.addSource("osm", {
+      type: "raster", tileSize: 256, maxzoom: 20,
+      attribution: '© OpenStreetMap · © CARTO',
+      tiles: ["a", "b", "c", "d"].map(s => `https://${s}.basemaps.cartocdn.com/rastertiles/${sub}/{z}/{x}/{y}.png`)
+    });
+    map.addLayer({ id: "osm", type: "raster", source: "osm",
+      layout: { visibility: store.realMap ? "visible" : "none" },
+      paint: { "raster-fade-duration": 200 } });
     // rail lines
     map.addSource("rail", { type: "geojson", data: railGeoJSON() });
     map.addLayer({ id: "rail", type: "line", source: "rail",
@@ -245,6 +259,10 @@
     map.addSource("me", { type: "geojson", data: empty() });
     map.addLayer({ id: "me", type: "circle", source: "me",
       paint: { "circle-radius": 8, "circle-color": "#1a73e8", "circle-stroke-width": 3, "circle-stroke-color": "#fff" } });
+    // Put the schematic base labels BELOW the real map so, online, OSM's own
+    // street names show (no duplicates); offline they reappear as fallback.
+    ["river-label", "canal-label", "road-label", "park-label", "district-label"]
+      .forEach(id => { if (map.getLayer(id)) map.moveLayer(id, "osm"); });
   }
   const empty = () => ({ type: "FeatureCollection", features: [] });
 
@@ -603,6 +621,14 @@
     $("#search").oninput = e => { store.search = e.target.value; renderPlaceList(); if (store.search) switchTab("places"); };
     $("#locateBtn").onclick = () => locate();
     $("#fitBtn").onclick = () => fitTo(PLACES.filter(p => !p.flags.far));
+    const mapBtn = $("#mapBtn");
+    mapBtn.classList.toggle("on", store.realMap);
+    mapBtn.onclick = () => {
+      store.realMap = !store.realMap;
+      localStorage.setItem("bkk_realmap", store.realMap ? "1" : "0");
+      mapBtn.classList.toggle("on", store.realMap);
+      if (map.getLayer("osm")) map.setLayoutProperty("osm", "visibility", store.realMap ? "visible" : "none");
+    };
     $("#overlay").onclick = e => { if (e.target.id === "overlay") closeOverlay(); };
     // grip toggles sheet size
     let gripStart = null;

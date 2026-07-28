@@ -35,9 +35,11 @@ button { font: inherit; cursor: pointer; }
 .date-chip.active small { color: #dbe7fb; }
 
 /* map controls */
-#mapctl { position: absolute; right: 10px; bottom: calc(var(--sheet-h) + 14px); z-index: 4; }
+#mapctl { position: absolute; right: 10px; bottom: calc(var(--sheet-h) + 14px); z-index: 4;
+  display: flex; flex-direction: column; gap: 8px; }
 #mapctl button { width: 40px; height: 40px; border: 0; border-radius: 10px; background: var(--panel);
   box-shadow: var(--shadow); font-size: 20px; color: var(--ink); }
+#mapctl button.on { background: var(--brand); }
 
 /* Bottom sheet */
 .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; height: var(--sheet-h);

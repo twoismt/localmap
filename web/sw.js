@@ -1,6 +1,6 @@
 // Offline-first service worker: pre-cache the whole app shell so the map,
 // data and planner work with no network at all.
-const CACHE = "bkk-map-v2";
+const CACHE = "bkk-map-v3";
 const RANGES = ["0-255","256-511","512-767","768-1023","1024-1279","1280-1535","7680-7935","8192-8447","8448-8703"];
 const GLYPHS = [];
 for (const font of ["DejaVu Sans", "DejaVu Sans Bold"])
