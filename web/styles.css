@@ -140,6 +140,26 @@ button { font: inherit; cursor: pointer; }
 .step .pl .time { font-weight: 700; font-size: 13px; }
 .empty { color: var(--muted); text-align: center; padding: 30px 10px; font-size: 14px; }
 
+/* route groups */
+.group-head { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--line); }
+
+/* plan step editing */
+.pl-top { display: flex; gap: 8px; align-items: flex-start; }
+.pl-main { flex: 1; min-width: 0; cursor: pointer; }
+.pl-edit { display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; }
+.mini { width: 26px; height: 24px; border: 1px solid var(--line); background: var(--bg);
+  color: var(--muted); border-radius: 6px; font-size: 12px; line-height: 1; padding: 0; }
+.mini.del { color: var(--bad); }
+
+/* photos */
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; }
+.photos img { width: 100%; height: 88px; object-fit: cover; border-radius: 8px; background: var(--chip); display: block; }
+.photos .ph-empty { grid-column: 1 / -1; font-size: 12px; color: var(--muted); background: var(--chip);
+  border-radius: 8px; padding: 10px; text-align: center; }
+.photo-full { position: fixed; inset: 0; background: rgba(0,0,0,.9); z-index: 40; display: grid; place-items: center; }
+.photo-full img { max-width: 96vw; max-height: 90vh; object-fit: contain; }
+
 .hint-bar { font-size: 12px; color: var(--muted); background: var(--chip); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
 @media print {
   #map, #topbar, #mapctl, .tabs, .sheet-grip, .overlay { display: none !important; }

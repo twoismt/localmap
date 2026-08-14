@@ -23,6 +23,7 @@ data_js = "\n".join(read(os.path.join(WEB, "data", f))
                     for f in ["places.js", "transit.js", "basemap.js", "themes.js"])
 geo_js = read(os.path.join(WEB, "js", "geo.js"))
 planner_js = read(os.path.join(WEB, "js", "planner.js"))
+photos_js = read(os.path.join(WEB, "js", "photos.js"))
 app_js = read(os.path.join(WEB, "js", "app.js"))
 
 # 2. glyphs -> base64 map keyed by "<fontstack>/<range>"
@@ -86,6 +87,7 @@ html = f"""<!DOCTYPE html>
 <script>{data_js}</script>
 <script>{geo_js}</script>
 <script>{planner_js}</script>
+<script>{photos_js}</script>
 <script>{glyph_boot}</script>
 <script>{app_js}</script>
 </body>

@@ -28,10 +28,12 @@
     search: "",
     userLoc: null,
     routeOrigin: null,
-    realMap: localStorage.getItem("bkk_realmap") !== "0" // default on (needs internet)
+    realMap: localStorage.getItem("bkk_realmap") !== "0", // default on (needs internet)
+    fixedPlan: JSON.parse(localStorage.getItem("bkk_fixed") || "null")
   };
   const saveFav = () => localStorage.setItem("bkk_fav", JSON.stringify([...store.fav]));
   const savePlan = () => localStorage.setItem("bkk_plan", JSON.stringify(store.plan));
+  const saveFixed = () => localStorage.setItem("bkk_fixed", JSON.stringify(store.fixedPlan));
 
   // ---------- helpers ----------
   const $ = s => document.querySelector(s);
@@ -356,32 +358,44 @@
       "Готовые маршруты на день (составлены по реальному опыту путешественников). Нажмите «Построить план» — приложение оптимизирует порядок под выбранную дату и уберёт закрытые места."));
     c.appendChild(el("div", "hint-bar",
       "🚇 Как перемещаться: <b>BTS/MRT</b> — быстро и без пробок; <b>речной экспресс</b> и <b>паром</b> (5 ฿) вдоль/через Чао Прайю; <b>лодка по каналу Саенсэп</b> (12–20 ฿) в обход пробок Старый город↔Сиам↔Сукхумвит; <b>мотобайк/GrabBike</b> — самый быстрый на короткие концы (20–60 ฿). Маршрутизатор сам подбирает лучший способ между точками."));
+    let curGroup = null;
     THEMES.forEach(t => {
-      const openCount = t.places.map(placeById).filter(p => p && p.trip[String(store.date)] !== "closed").length;
+      if (t.group && t.group !== curGroup) {
+        curGroup = t.group;
+        const h = el("div", "group-head", curGroup);
+        c.appendChild(h);
+      }
+      const ids = themeIds(t);
+      const openCount = ids.map(placeById).filter(p => p && p.trip[String(store.date)] !== "closed").length;
       const rec = t.recDates.includes(store.date);
       const div = el("div", "theme");
       div.innerHTML =
         `<h3>${t.icon} ${t.title}</h3>
          <div class="blurb">${t.blurb}</div>
          ${t.transport ? `<div class="note" style="color:var(--muted)">🚇 ${t.transport}</div>` : ""}
-         <div class="note">⚠ ${t.note}</div>
+         ${t.note ? `<div class="note">⚠ ${t.note}</div>` : ""}
+         ${t.tips ? `<div class="note" style="color:var(--muted)">💡 ${t.tips}</div>` : ""}
          <div class="meta" style="margin-bottom:8px">
            <span class="badge">${t.area}</span>
            <span class="badge">старт ${t.start}</span>
-           <span class="badge ${rec ? "ok" : "warn"}">${rec ? "хорошо на " + store.date + " окт" : "лучше: " + t.recDates.map(d => d + "").join(", ") + " окт"}</span>
-           <span class="badge">${openCount}/${t.places.length} открыто</span>
+           <span class="badge ${rec ? "ok" : "warn"}">${rec ? "на " + store.date + " окт" : "лучше: " + t.recDates.join(", ") + " окт"}</span>
+           <span class="badge">${openCount}/${ids.length} открыто</span>
          </div>
          <div class="row">
-           <button class="btn build">🧭 Построить план</button>
-           <button class="btn ghost show">Показать на карте</button>
+           <button class="btn build">${t.fixed ? "📋 Открыть день" : "🧭 Построить план"}</button>
+           <button class="btn ghost show">На карте</button>
          </div>`;
       div.querySelector(".build").onclick = () => buildThemePlan(t);
       div.querySelector(".show").onclick = () => showThemeOnMap(t);
       c.appendChild(div);
     });
   }
+  // ids of a theme: either an explicit places[] or the schedule[] order
+  function themeIds(t) {
+    return t.schedule ? t.schedule.map(s => s.id) : (t.places || []);
+  }
   function showThemeOnMap(t) {
-    const pts = t.places.map(placeById).filter(Boolean);
+    const pts = themeIds(t).map(placeById).filter(Boolean);
     const b = new maplibregl.LngLatBounds();
     pts.forEach(p => b.extend([p.lon, p.lat]));
     map.fitBounds(b, { padding: 70, maxZoom: 15 });
@@ -389,10 +403,21 @@
   }
   function buildThemePlan(t) {
     const [h, m] = t.start.split(":").map(Number);
-    const startPlace = placeById(t.places[0]);
-    const res = window.PLANNER.planDay(t.places, store.date, h * 60 + m, [startPlace.lon, startPlace.lat]);
-    store.plan = res.steps.map(s => s.place.id);
-    savePlan();
+    const ids = themeIds(t);
+    if (t.fixed) {
+      // day from the trip plan: keep the given order and times as-is
+      store.plan = ids.slice();
+      store.fixedPlan = { title: t.title, schedule: t.schedule, note: t.note,
+        transport: t.transport, tips: t.tips, date: t.recDates[0] };
+      if (t.recDates.length) store.date = t.recDates[0];
+      buildDateChips();
+    } else {
+      const start = placeById(ids[0]);
+      const res = window.PLANNER.planDay(ids, store.date, h * 60 + m, [start.lon, start.lat]);
+      store.plan = res.steps.map(s => s.place.id);
+      store.fixedPlan = null;
+    }
+    savePlan(); saveFixed();
     lastPlanMeta = { start: h * 60 + m, title: t.title };
     switchTab("plan");
     renderPlan();
@@ -421,12 +446,19 @@
     startInput.style.cssText = "padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)";
     startInput.onchange = () => { const [h, m] = startInput.value.split(":").map(Number); lastPlanMeta.start = h * 60 + m; renderPlan(); };
     bar.append(el("span", "", "Старт: "), startInput);
+    const add = el("button", "btn sm", "＋ Добавить место");
+    add.onclick = () => openAddPlace();
     const exp = el("button", "btn ghost sm", "🖨 Экспорт");
     exp.onclick = () => window.print();
     const clr = el("button", "btn ghost sm", "Очистить");
-    clr.onclick = () => { store.plan = []; savePlan(); renderPlan(); };
-    bar.append(exp, clr);
+    clr.onclick = () => { store.plan = []; store.fixedPlan = null; savePlan(); saveFixed(); renderPlan(); };
+    bar.append(add, exp, clr);
     c.appendChild(bar);
+    if (store.fixedPlan) {
+      if (store.fixedPlan.transport) c.appendChild(el("div", "hint-bar", "🚇 " + store.fixedPlan.transport));
+      if (store.fixedPlan.note) c.appendChild(el("div", "hint-bar", "⚠ " + store.fixedPlan.note));
+      if (store.fixedPlan.tips) c.appendChild(el("div", "hint-bar", "💡 " + store.fixedPlan.tips));
+    }
 
     if (res.excluded.length)
       c.appendChild(el("div", "hint-bar", "⚠ Убрано (закрыто " + store.date + " окт): " +
@@ -442,14 +474,30 @@
       }
       const v = CAT[s.place.cat];
       const pl = el("div", "step-inner");
+      const sch = store.fixedPlan && store.fixedPlan.schedule
+        ? store.fixedPlan.schedule.find(x => x.id === s.place.id) : null;
+      const timeStr = sch ? sch.t : `${fmtMin(s.arrive)}–${fmtMin(s.depart)}`;
       pl.innerHTML =
         `<span class="dot" style="background:${v.color}"></span>
          <div class="pl">
-           <span class="time">${fmtMin(s.arrive)}–${fmtMin(s.depart)}</span> · ${v.icon} <b>${s.place.nameRu}</b>
-           ${s.warn ? `<div class="badge bad" style="margin-top:4px">${s.warn}</div>` : ""}
-           <div class="sub" style="color:var(--muted);font-size:12px;margin-top:3px">${priceStr(s.place)} · ${s.place.address}</div>
+           <div class="pl-top">
+             <div class="pl-main">
+               <span class="time">${timeStr}</span> · ${v.icon} <b>${s.place.nameRu}</b>
+               ${s.warn ? `<div class="badge bad" style="margin-top:4px">${s.warn}</div>` : ""}
+               ${sch && sch.what ? `<div class="sub" style="font-size:12px;margin-top:3px">${sch.what}</div>` : ""}
+               <div class="sub" style="color:var(--muted);font-size:12px;margin-top:3px">${priceStr(s.place)} · ${s.place.address}</div>
+             </div>
+             <div class="pl-edit">
+               <button class="mini up" title="Выше">↑</button>
+               <button class="mini down" title="Ниже">↓</button>
+               <button class="mini del" title="Убрать из маршрута">✕</button>
+             </div>
+           </div>
          </div>`;
-      pl.querySelector(".pl").onclick = () => openPlace(s.place.id);
+      pl.querySelector(".pl-main").onclick = () => openPlace(s.place.id);
+      pl.querySelector(".del").onclick = e => { e.stopPropagation(); removeFromPlan(s.place.id); };
+      pl.querySelector(".up").onclick = e => { e.stopPropagation(); movePlan(s.place.id, -1); };
+      pl.querySelector(".down").onclick = e => { e.stopPropagation(); movePlan(s.place.id, 1); };
       step.appendChild(pl);
       c.appendChild(step);
     });
@@ -467,6 +515,61 @@
     if (parts.length >= 2) drawRoute(parts);
   }
   function legIcon(m) { return { walk: "🚶", rail: "🚆", boat: "🚤", canal: "🛶", ferry: "⛴️", bike: "🏍️", taxi: "🚕" }[m] || "→"; }
+
+  // ---------- plan editing ----------
+  function removeFromPlan(id) {
+    store.plan = store.plan.filter(x => x !== id);
+    if (store.fixedPlan && store.fixedPlan.schedule)
+      store.fixedPlan.schedule = store.fixedPlan.schedule.filter(s => s.id !== id);
+    savePlan(); saveFixed(); renderPlan();
+    if (curPlace === id) openPlace(id);
+  }
+  function addToPlan(id) {
+    if (store.plan.includes(id)) return;
+    store.plan.push(id);
+    savePlan(); renderPlan();
+  }
+  function movePlan(id, dir) {
+    const i = store.plan.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= store.plan.length) return;
+    [store.plan[i], store.plan[j]] = [store.plan[j], store.plan[i]];
+    // a hand-reordered plan no longer matches the fixed timetable
+    if (store.fixedPlan) { store.fixedPlan = null; saveFixed(); }
+    savePlan(); renderPlan();
+  }
+  // Picker overlay to add any place into the current route
+  function openAddPlace() {
+    const card = $("#overlayCard");
+    const render = q => {
+      const ql = (q || "").trim().toLowerCase();
+      const items = PLACES.filter(p => !store.plan.includes(p.id) && (!ql ||
+        (p.nameRu + " " + p.nameEn + " " + p.address + " " + (p.district || "")).toLowerCase().includes(ql)));
+      const list = items.slice(0, 60).map(p => {
+        const v = CAT[p.cat], st = statusForDate(p, store.date);
+        return `<div class="card pick" data-id="${p.id}">
+          <div class="ic" style="background:${v.color}">${v.icon}</div>
+          <div class="body"><div class="t">${p.nameRu}</div>
+            <div class="sub">${v.ru} · ${p.address}</div>
+            <div class="meta"><span class="badge ${st.cls}">${st.label}</span><span class="badge">${priceStr(p)}</span></div>
+          </div><button class="btn sm">＋</button></div>`;
+      }).join("");
+      card.querySelector("#pickList").innerHTML = list || `<div class="empty">Ничего не найдено</div>`;
+      card.querySelectorAll(".pick").forEach(row => row.onclick = () => {
+        addToPlan(+row.dataset.id);
+        render(card.querySelector("#pickSearch").value);
+      });
+    };
+    card.innerHTML =
+      `<button class="close-x">✕</button>
+       <h2>＋ Добавить место в маршрут</h2>
+       <input id="pickSearch" placeholder="Поиск по названию или району…"
+         style="width:100%;padding:10px;margin:10px 0;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:15px" />
+       <div id="pickList" class="list"></div>`;
+    card.querySelector(".close-x").onclick = () => { closeOverlay(); renderPlan(); };
+    card.querySelector("#pickSearch").oninput = e => render(e.target.value);
+    render("");
+    $("#overlay").classList.remove("hidden");
+  }
 
   // ---------- favorites ----------
   function renderFav() {
@@ -508,6 +611,7 @@
        <h2>${p.nameRu}</h2>
        <div class="en">${p.nameEn}${p.nameTh ? " · " + p.nameTh : ""}</div>
        <div class="meta" style="margin-top:8px"><span class="badge ${st.cls}">${st.label}</span><span class="badge">${v.ru}</span></div>
+       <div class="photos" id="photos"><div class="ph-empty">Загружаю фото…</div></div>
        <div class="kv">${p.desc}</div>
        <div class="kv"><b>Часы (${WD_FULL[wd]}):</b> ${hoursStr(p.hours[wd])} · <span style="color:var(--muted)">${p.hoursText}</span></div>
        <div class="kv"><b>Цена:</b> ${priceStr(p)} <span style="color:var(--muted)">(${p.priceText})</span></div>
@@ -535,6 +639,31 @@
     });
     $("#overlay").classList.remove("hidden");
     highlight(p);
+    loadPhotos(p);
+  }
+  function loadPhotos(p) {
+    const box = () => document.querySelector("#photos");
+    const cached = window.PHOTOS.cached(p.id);
+    const draw = list => {
+      const b = box(); if (!b) return;
+      if (!list || !list.length) {
+        b.innerHTML = `<div class="ph-empty">Фото не найдены (нужен интернет — фото подгружаются из Викимедиа)</div>`;
+        return;
+      }
+      b.innerHTML = list.map(ph =>
+        `<img src="${ph.src}" alt="${ph.title}" title="${ph.title} · ${ph.from}" loading="lazy" />`).join("");
+      b.querySelectorAll("img").forEach((im, i) => {
+        im.onerror = () => im.remove();
+        im.onclick = e => { e.stopPropagation(); showFullPhoto(list[i]); };
+      });
+    };
+    if (cached) { draw(cached); return; }
+    window.PHOTOS.forPlace(p).then(draw).catch(() => draw(null));
+  }
+  function showFullPhoto(ph) {
+    const d = el("div", "photo-full", `<img src="${ph.src.replace(/width=\d+/, "width=1400")}" alt="${ph.title}">`);
+    d.onclick = () => d.remove();
+    document.body.appendChild(d);
   }
   function closeOverlay() { $("#overlay").classList.add("hidden"); curPlace = null; }
 
