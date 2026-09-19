@@ -166,3 +166,11 @@ button { font: inherit; cursor: pointer; }
   .sheet { position: static; height: auto; box-shadow: none; }
   .tabpane { display: block !important; }
 }
+
+/* anchor emoji pins (airport / hotel / stadium) */
+.anchor-pin { display: flex; flex-direction: column; align-items: center; cursor: pointer;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+.anchor-pin .ap-emoji { font-size: 27px; line-height: 1; }
+.anchor-pin .ap-label { margin-top: 2px; font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 8px; padding: 2px 6px; }

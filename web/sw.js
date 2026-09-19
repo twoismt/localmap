@@ -8,7 +8,7 @@ for (const font of ["DejaVu Sans", "DejaVu Sans Bold"])
 const ASSETS = [
   "./", "./index.html", "./styles.css", "./manifest.webmanifest",
   "./vendor/maplibre-gl.js", "./vendor/maplibre-gl.css",
-  "./data/places.js", "./data/transit.js", "./data/basemap.js", "./data/themes.js",
+  "./data/places.js", "./data/anchors.js", "./data/transit.js", "./data/basemap.js", "./data/themes.js",
   "./js/geo.js", "./js/planner.js", "./js/photos.js", "./js/app.js",
   "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png",
   ...GLYPHS

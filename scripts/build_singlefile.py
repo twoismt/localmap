@@ -20,7 +20,7 @@ maplibre_css = read(os.path.join(WEB, "vendor", "maplibre-gl.css"))
 styles_css = read(os.path.join(WEB, "styles.css"))
 
 data_js = "\n".join(read(os.path.join(WEB, "data", f))
-                    for f in ["places.js", "transit.js", "basemap.js", "themes.js"])
+                    for f in ["places.js", "anchors.js", "transit.js", "basemap.js", "themes.js"])
 geo_js = read(os.path.join(WEB, "js", "geo.js"))
 planner_js = read(os.path.join(WEB, "js", "planner.js"))
 photos_js = read(os.path.join(WEB, "js", "photos.js"))

@@ -11,7 +11,8 @@
     cafe:     { ru: "Кафе",         icon: "☕", color: "#A9744F" },
     shop:     { ru: "Магазины",     icon: "🎁", color: "#D6455F" },
     floating: { ru: "Плавучие рынки",icon: "🛶", color: "#1B998B" },
-    river:    { ru: "Река",         icon: "🌊", color: "#2389C6" }
+    river:    { ru: "Река",         icon: "🌊", color: "#2389C6" },
+    base:     { ru: "Опорные точки",icon: "📍", color: "#111418" }
   };
   const DATES = [
     { d: 11, wd: "вс" }, { d: 12, wd: "пн" }, { d: 13, wd: "вт" },
@@ -114,7 +115,8 @@
   function placesGeoJSON() {
     return {
       type: "FeatureCollection",
-      features: PLACES.map(p => ({
+      // anchor points (airport / hotel / stadium) get emoji pins instead
+      features: PLACES.filter(p => p.cat !== "base").map(p => ({
         type: "Feature",
         properties: { id: p.id, color: CAT[p.cat].color, name: p.nameRu, cat: p.cat },
         geometry: { type: "Point", coordinates: [p.lon, p.lat] }
@@ -268,7 +270,22 @@
   }
   const empty = () => ({ type: "FeatureCollection", features: [] });
 
+  // Emoji pins for the trip's anchor points (airport, hotel, stadium).
+  function addAnchorMarkers() {
+    PLACES.filter(p => p.cat === "base").forEach(p => {
+      const wrap = document.createElement("div");
+      wrap.className = "anchor-pin";
+      wrap.innerHTML = `<span class="ap-emoji">${p.emoji || "📍"}</span>` +
+        `<span class="ap-label">${p.nameRu.replace(/^(Отель|Аэропорт|Стадион)\s+/, "")}</span>`;
+      wrap.title = p.nameRu;
+      wrap.onclick = e => { e.stopPropagation(); openPlace(p.id); };
+      new maplibregl.Marker({ element: wrap, anchor: "bottom" })
+        .setLngLat([p.lon, p.lat]).addTo(map);
+    });
+  }
+
   function wireMap() {
+    addAnchorMarkers();
     map.on("click", "places", e => { const id = e.features[0].properties.id; openPlace(+id); });
     map.on("mouseenter", "places", () => map.getCanvas().style.cursor = "pointer");
     map.on("mouseleave", "places", () => map.getCanvas().style.cursor = "");
