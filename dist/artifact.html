@@ -184,6 +184,13 @@ button { font: inherit; cursor: pointer; }
 .card .thumb .th-ic { position: absolute; right: -1px; bottom: -1px; font-size: 11px;
   line-height: 1; padding: 3px 4px; border-radius: 8px 0 0 0; color: #fff; }
 
+/* toast */
+.toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(10px);
+  bottom: calc(var(--sheet-h) + 60px); z-index: 30; background: rgba(32,33,36,.94); color: #fff;
+  font-size: 13px; padding: 9px 14px; border-radius: 20px; pointer-events: none;
+  opacity: 0; transition: opacity .2s ease, transform .2s ease; max-width: 80vw; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 html,body{margin:0;height:100%;overflow:hidden;}
 </style>
 
@@ -9402,6 +9409,18 @@ window.THEMES = [
     river:    { ru: "Река",         icon: "🌊", color: "#2389C6" },
     base:     { ru: "Опорные точки",icon: "📍", color: "#111418" }
   };
+
+  // Free raster basemaps that require no API key. Cycled by the map button.
+  const TILE_PROVIDERS = [
+    { name: "OpenStreetMap", maxzoom: 19,
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"] },
+    { name: "OSM France", maxzoom: 19,
+      tiles: ["a", "b", "c"].map(s => `https://${s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png`) },
+    { name: "Esri — улицы", maxzoom: 19,
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"] },
+    { name: "Esri — спутник", maxzoom: 19,
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"] }
+  ];
   const DATES = [
     { d: 11, wd: "вс" }, { d: 12, wd: "пн" }, { d: 13, wd: "вт" },
     { d: 14, wd: "ср" }, { d: 15, wd: "чт" }
@@ -9418,6 +9437,7 @@ window.THEMES = [
     userLoc: null,
     routeOrigin: null,
     realMap: localStorage.getItem("bkk_realmap") !== "0", // default on (needs internet)
+    tileIx: Math.max(0, Math.min(+(localStorage.getItem("bkk_tiles") || 0), 3)),
     fixedPlan: JSON.parse(localStorage.getItem("bkk_fixed") || "null")
   };
   const saveFav = () => localStorage.setItem("bkk_fav", JSON.stringify([...store.fav]));
@@ -9548,14 +9568,15 @@ window.THEMES = [
     map.addLayer({ id: "roads", type: "line", source: "roads",
       layout: { "line-cap": "round", "line-join": "round" },
       paint: { "line-color": dark ? "#3c4046" : "#ffffff", "line-width": wByClass(1) } });
-    // REAL street map (OpenStreetMap via CARTO) — loads with internet on the
-    // device and shows every street exactly; when offline the tiles simply
-    // don't load and the schematic base below shows through as a fallback.
-    const sub = dark ? "dark_all" : "voyager";
+    // REAL street map — free tile providers that need no API key. Several are
+    // offered because a provider can start demanding a key (CARTO did), and
+    // such a tile still returns HTTP 200, so it cannot be detected in code —
+    // the map button cycles providers so a working one can be picked by eye.
+    const prov = TILE_PROVIDERS[store.tileIx] || TILE_PROVIDERS[0];
     map.addSource("osm", {
-      type: "raster", tileSize: 256, maxzoom: 20,
-      attribution: '© OpenStreetMap · © CARTO',
-      tiles: ["a", "b", "c", "d"].map(s => `https://${s}.basemaps.cartocdn.com/rastertiles/${sub}/{z}/{x}/{y}.png`)
+      type: "raster", tileSize: 256, maxzoom: prov.maxzoom,
+      attribution: "© OpenStreetMap contributors · Esri, HERE, Garmin",
+      tiles: prov.tiles
     });
     map.addLayer({ id: "osm", type: "raster", source: "osm",
       layout: { visibility: store.realMap ? "visible" : "none" },
@@ -9730,6 +9751,17 @@ window.THEMES = [
   }
   // Every point always shows an image: a category-coloured placeholder that is
   // swapped for a real photo once one resolves (lazily, only for visible cards).
+  // Brief message at the bottom of the map (e.g. which basemap is active).
+  let toastTimer = null;
+  function toast(msg) {
+    let t = document.getElementById("toast");
+    if (!t) { t = el("div", "toast"); t.id = "toast"; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
   function placeholderImg(p) {
     const v = CAT[p.cat] || CAT.sight;
     const icon = p.emoji || v.icon;
@@ -10203,12 +10235,27 @@ window.THEMES = [
     $("#locateBtn").onclick = () => locate();
     $("#fitBtn").onclick = () => fitTo(PLACES.filter(p => !p.flags.far));
     const mapBtn = $("#mapBtn");
-    mapBtn.classList.toggle("on", store.realMap);
-    mapBtn.onclick = () => {
-      store.realMap = !store.realMap;
-      localStorage.setItem("bkk_realmap", store.realMap ? "1" : "0");
+    const syncMapBtn = () => {
       mapBtn.classList.toggle("on", store.realMap);
+      mapBtn.title = store.realMap
+        ? "Карта: " + TILE_PROVIDERS[store.tileIx].name + " (нажмите, чтобы сменить)"
+        : "Детальная карта выключена";
+    };
+    syncMapBtn();
+    // Cycles: provider 1 → 2 → … → off → provider 1. Lets a working basemap be
+    // picked by eye, since a provider that starts demanding a key still
+    // answers 200 and cannot be detected automatically.
+    mapBtn.onclick = () => {
+      if (!store.realMap) { store.realMap = true; store.tileIx = 0; }
+      else if (store.tileIx < TILE_PROVIDERS.length - 1) store.tileIx++;
+      else { store.realMap = false; store.tileIx = 0; }
+      localStorage.setItem("bkk_realmap", store.realMap ? "1" : "0");
+      localStorage.setItem("bkk_tiles", String(store.tileIx));
+      const src = map.getSource("osm");
+      if (src && src.setTiles) src.setTiles(TILE_PROVIDERS[store.tileIx].tiles);
       if (map.getLayer("osm")) map.setLayoutProperty("osm", "visibility", store.realMap ? "visible" : "none");
+      syncMapBtn();
+      toast(store.realMap ? "Карта: " + TILE_PROVIDERS[store.tileIx].name : "Детальная карта выключена");
     };
     $("#overlay").onclick = e => { if (e.target.id === "overlay") closeOverlay(); };
     // grip toggles sheet size
