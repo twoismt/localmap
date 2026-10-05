@@ -340,11 +340,43 @@
       return true;
     });
   }
+  // Every point always shows an image: a category-coloured placeholder that is
+  // swapped for a real photo once one resolves (lazily, only for visible cards).
+  function placeholderImg(p) {
+    const v = CAT[p.cat] || CAT.sight;
+    const icon = p.emoji || v.icon;
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      `<stop offset="0" stop-color="${v.color}"/>` +
+      `<stop offset="1" stop-color="${v.color}" stop-opacity=".5"/></linearGradient></defs>` +
+      '<rect width="128" height="128" fill="url(#g)"/>' +
+      `<text x="64" y="82" font-size="50" text-anchor="middle">${icon}</text></svg>`;
+    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+
+  const thumbObserver = ("IntersectionObserver" in window)
+    ? new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (!en.isIntersecting) return;
+          thumbObserver.unobserve(en.target);
+          const img = en.target, p = placeById(+img.dataset.pid);
+          if (!p || !window.PHOTOS) return;
+          const hit = PHOTOS.cached(p.id);
+          if (hit && hit[0]) { img.src = hit[0].src; return; }
+          PHOTOS.forPlace(p).then(ph => { if (ph && ph[0]) img.src = ph[0].src; })
+            .catch(() => {});
+        });
+      }, { rootMargin: "250px" })
+    : null;
+
   function placeCard(p) {
     const v = CAT[p.cat]; const st = statusForDate(p, store.date);
     const card = el("div", "card");
     card.innerHTML =
-      `<div class="ic" style="background:${v.color}">${v.icon}</div>
+      `<div class="thumb">
+         <img data-pid="${p.id}" src="${placeholderImg(p)}" alt="${p.nameRu}">
+         <span class="th-ic" style="background:${v.color}">${p.emoji || v.icon}</span>
+       </div>
        <div class="body">
          <div class="t">${p.nameRu}</div>
          <div class="sub">${v.ru} · ${p.address}</div>
@@ -355,8 +387,10 @@
        </div>
        <button class="fav-star ${store.fav.has(p.id) ? "on" : ""}">${store.fav.has(p.id) ? "★" : "☆"}</button>`;
     card.querySelector(".body").onclick = () => openPlace(p.id);
-    card.querySelector(".ic").onclick = () => flyTo(p);
+    card.querySelector(".thumb").onclick = () => flyTo(p);
     card.querySelector(".fav-star").onclick = e => { e.stopPropagation(); toggleFav(p.id); };
+    const img = card.querySelector("img");
+    if (thumbObserver) thumbObserver.observe(img);
     return card;
   }
   function renderPlaceList() {
